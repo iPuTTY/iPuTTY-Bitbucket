@@ -1,4 +1,4 @@
-\define{versionidusing} \versionid $Id: using.but 6836 2006-08-29 21:46:56Z jacob $
+\define{versionidusing} \versionid $Id: using.but 7295 2007-02-18 14:02:39Z jacob $
 
 \C{using} Using PuTTY
 
@@ -127,6 +127,9 @@ tokens, such as a \q{break} signal, that can be sent down a
 connection in addition to normal data. Their precise effect is usually
 up to the server. Currently only Telnet, SSH, and serial connections
 have special commands.
+
+The \q{break} signal can also be invoked from the keyboard with
+\i{Ctrl-Break}.
 
 The following \I{Telnet special commands}special commands are
 available in Telnet:

@@ -1,4 +1,4 @@
-/* $Id: macdlg.c 5609 2005-04-07 01:36:28Z jacob $ */
+/* $Id: macdlg.c 7266 2007-02-10 17:12:06Z simon $ */
 /*
  * Copyright (c) 2002 Ben Harris
  * All rights reserved.
@@ -237,7 +237,7 @@ static OSErr mac_opensessionfrom(FSSpec *fss)
 	err = -9999;
 	goto fail;
     }
-    load_open_settings(sesshandle, TRUE, &s->cfg);
+    load_open_settings(sesshandle, &s->cfg);
     close_settings_r(sesshandle);
 
     mac_startsession(s);
@@ -321,7 +321,7 @@ void mac_savesession(void)
     assert(s->hasfile);
     sesshandle = open_settings_w_fsp(&s->savefile);
     if (sesshandle == NULL) return; /* XXX report error */
-    save_open_settings(sesshandle, TRUE, &s->cfg);
+    save_open_settings(sesshandle, &s->cfg);
     close_settings_w(sesshandle);
 }
 
@@ -342,7 +342,7 @@ void mac_savesessionas(void)
     }
     sesshandle = open_settings_w_fsp(&sfr.sfFile);
     if (sesshandle == NULL) return; /* XXX report error */
-    save_open_settings(sesshandle, TRUE, &s->cfg);
+    save_open_settings(sesshandle, &s->cfg);
     close_settings_w(sesshandle);
     s->hasfile = TRUE;
     s->savefile = sfr.sfFile;

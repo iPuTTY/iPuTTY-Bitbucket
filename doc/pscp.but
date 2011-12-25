@@ -1,4 +1,4 @@
-\define{versionidpscp} \versionid $Id: pscp.but 7146 2007-01-24 20:16:33Z simon $
+\define{versionidpscp} \versionid $Id: pscp.but 7488 2007-04-29 11:28:54Z simon $
 
 \#FIXME: Need examples
 
@@ -41,7 +41,7 @@ use PSCP:
 
 \c Z:\owendadmin>pscp
 \c PuTTY Secure Copy client
-\c Release 0.59
+\c Release 0.60
 \c Usage: pscp [options] [user@]host:source target
 \c        pscp [options] source [source...] [user@]host:target
 \c        pscp [options] -ls [user@]host:filespec

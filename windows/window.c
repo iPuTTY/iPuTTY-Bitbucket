@@ -361,6 +361,10 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     {
 	char *p;
 	int got_host = 0;
+	/* By default, we bring up the config dialog, rather than launching
+	 * a session. This gets set to TRUE if something happens to change
+	 * that (e.g., a hostname is specified on the command-line). */
+	int allow_launch = FALSE;
 
 	default_protocol = be_default_protocol;
 	/* Find the appropriate default port. */
@@ -397,6 +401,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	    if (!cfg_launchable(&cfg) && !do_config()) {
 		cleanup_exit(0);
 	    }
+	    allow_launch = TRUE;    /* allow it to be launched directly */
 	} else if (*p == '&') {
 	    /*
 	     * An initial & means we've been given a command line
@@ -415,6 +420,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	    } else if (!do_config()) {
 		cleanup_exit(0);
 	    }
+	    allow_launch = TRUE;
 	} else {
 	    /*
 	     * Otherwise, break up the command line and deal with
@@ -539,7 +545,10 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 
 	cmdline_run_saved(&cfg);
 
-	if (!cfg_launchable(&cfg) && !do_config()) {
+	if (loaded_session || got_host)
+	    allow_launch = TRUE;
+
+	if ((!allow_launch || !cfg_launchable(&cfg)) && !do_config()) {
 	    cleanup_exit(0);
 	}
 
@@ -816,9 +825,8 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	    sfree(handles);
 	    if (must_close_session)
 		close_session();
-	}
-
-	sfree(handles);
+	} else
+	    sfree(handles);
 
 	while (PeekMessage(&msg, NULL, 0, 0, PM_REMOVE)) {
 	    if (msg.message == WM_QUIT)
@@ -3564,8 +3572,9 @@ int char_width(Context ctx, int uc) {
 
 /*
  * Translate a WM_(SYS)?KEY(UP|DOWN) message into a string of ASCII
- * codes. Returns number of bytes used or zero to drop the message
- * or -1 to forward the message to windows.
+ * codes. Returns number of bytes used, zero to drop the message,
+ * -1 to forward the message to Windows, or another negative number
+ * to indicate a NUL-terminated "special" string.
  */
 static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
 			unsigned char *output)
@@ -3985,9 +3994,9 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
 	    return p - output;
 	}
 	if (wParam == VK_CANCEL && shift_state == 2) {	/* Ctrl-Break */
-	    *p++ = 3;
-	    *p++ = 0;
-	    return -2;
+	    if (back)
+		back->special(backhandle, TS_BRK);
+	    return 0;
 	}
 	if (wParam == VK_PAUSE) {      /* Break/Pause */
 	    *p++ = 26;
