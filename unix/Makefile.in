@@ -106,8 +106,7 @@
 CC = @CC@
 
 CFLAGS = @CFLAGS@ @PUTTYCFLAGS@ @CPPFLAGS@ @DEFS@ @GTK_CFLAGS@ -I.././ \
-		-I../charset/ -I../windows/ -I../windows/re_lib -I../unix/ \
-		-I../macosx/
+		-I../charset/ -I../windows/ -I../unix/ -I../macosx/
 XLDFLAGS = @LDFLAGS@ @LIBS@ @GTK_LIBS@
 ULDFLAGS = @LDFLAGS@ @LIBS@
 INSTALL=@INSTALL@

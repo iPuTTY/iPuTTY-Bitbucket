@@ -116,8 +116,7 @@ RC = $(TOOLPATH)windres
 
 CFLAGS = -mno-cygwin -Wall -O2 -D_WINDOWS -DDEBUG -DWIN32S_COMPAT \
 		-D_NO_OLDNAMES -DNO_MULTIMON -DNO_HTMLHELP -I.././ \
-		-I../charset/ -I../windows/ -I../windows/re_lib -I../unix/ \
-		-I../macosx/
+		-I../charset/ -I../windows/ -I../unix/ -I../macosx/
 LDFLAGS = -mno-cygwin -s
 RCFLAGS = $(RCINC) --define WIN32=1 --define _WIN32=1 --define WINVER=0x0400
 
@@ -237,20 +236,21 @@ putty.exe: PickIconDialog.o be_all_s.o cmdline.o config.o cproxy.o dialog.o \
 		-lcomctl32 -lcomdlg32 -lgdi32 -limm32 -lole32 -lshell32 \
 		-luser32 -lwinmm -lwinspool
 
-puttygen.exe: import.o misc.o notiming.o puttygen.res.o sshaes.o sshbn.o \
-		sshdes.o sshdss.o sshdssg.o sshmd5.o sshprime.o sshpubk.o \
-		sshrand.o sshrsa.o sshrsag.o sshsh256.o sshsh512.o sshsha.o \
-		tree234.o version.o winctrls.o winhelp.o winmisc.o \
-		winnoise.o winnojmp.o winpgen.o winstore.o wintime.o \
-		winutils.o
-	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,puttygen.map import.o \
-		misc.o notiming.o puttygen.res.o sshaes.o sshbn.o sshdes.o \
-		sshdss.o sshdssg.o sshmd5.o sshprime.o sshpubk.o sshrand.o \
-		sshrsa.o sshrsag.o sshsh256.o sshsh512.o sshsha.o tree234.o \
-		version.o winctrls.o winhelp.o winmisc.o winnoise.o \
-		winnojmp.o winpgen.o winstore.o wintime.o winutils.o \
-		-ladvapi32 -lcomctl32 -lcomdlg32 -lgdi32 -limm32 -lole32 \
-		-lshell32 -luser32 -lwinmm -lwinspool
+puttygen.exe: PickIconDialog.o import.o misc.o notiming.o puttygen.res.o \
+		sshaes.o sshbn.o sshdes.o sshdss.o sshdssg.o sshmd5.o \
+		sshprime.o sshpubk.o sshrand.o sshrsa.o sshrsag.o sshsh256.o \
+		sshsh512.o sshsha.o tree234.o version.o winctrls.o winhelp.o \
+		winmisc.o winnoise.o winnojmp.o winpgen.o winstore.o \
+		wintime.o winutils.o
+	$(CC) -mwindows $(LDFLAGS) -o $@ -Wl,-Map,puttygen.map \
+		PickIconDialog.o import.o misc.o notiming.o puttygen.res.o \
+		sshaes.o sshbn.o sshdes.o sshdss.o sshdssg.o sshmd5.o \
+		sshprime.o sshpubk.o sshrand.o sshrsa.o sshrsag.o sshsh256.o \
+		sshsh512.o sshsha.o tree234.o version.o winctrls.o winhelp.o \
+		winmisc.o winnoise.o winnojmp.o winpgen.o winstore.o \
+		wintime.o winutils.o -ladvapi32 -lcomctl32 -lcomdlg32 \
+		-lgdi32 -limm32 -lole32 -lshell32 -luser32 -lwinmm \
+		-lwinspool
 
 puttytel.exe: PickIconDialog.o be_nos_s.o cmdline.o config.o dialog.o \
 		ldisc.o ldiscucs.o logging.o minibidi.o misc.o nocproxy.o \

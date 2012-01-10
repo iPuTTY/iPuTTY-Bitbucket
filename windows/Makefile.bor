@@ -122,8 +122,8 @@ RCFLAGS = $(RCFLAGS) $(VER)
 
 .c.obj:
 	bcc32 -w-aus -w-ccc -w-par -w-pia $(COMPAT) $(CFLAGS) $(XFLAGS) \
-		-I..\./ -I..\charset/ -I..\windows/ -I..\windows/re_lib \
-		-I..\unix/ -I..\macosx/ /c $*.c
+		-I..\./ -I..\charset/ -I..\windows/ -I..\unix/ -I..\macosx/ \
+		/c $*.c
 .rc.res:
 	brcc32 $(RCFL) -i $(BCB)\include -r $(RCFLAGS) $*.rc
 
@@ -193,13 +193,13 @@ putty.exe: PickIconDialog.obj be_all_s.obj cmdline.obj config.obj cproxy.obj \
 		winx11.obj x11fwd.obj putty.rsp
 	ilink32 -aa -Gn -L$(BCB)\lib @putty.rsp
 
-puttygen.exe: import.obj misc.obj notiming.obj puttygen.res sshaes.obj \
-		sshbn.obj sshdes.obj sshdss.obj sshdssg.obj sshmd5.obj \
-		sshprime.obj sshpubk.obj sshrand.obj sshrsa.obj sshrsag.obj \
-		sshsh256.obj sshsh512.obj sshsha.obj tree234.obj version.obj \
-		winctrls.obj winhelp.obj winmisc.obj winnoise.obj \
-		winnojmp.obj winpgen.obj winstore.obj wintime.obj \
-		winutils.obj puttygen.rsp
+puttygen.exe: PickIconDialog.obj import.obj misc.obj notiming.obj \
+		puttygen.res sshaes.obj sshbn.obj sshdes.obj sshdss.obj \
+		sshdssg.obj sshmd5.obj sshprime.obj sshpubk.obj sshrand.obj \
+		sshrsa.obj sshrsag.obj sshsh256.obj sshsh512.obj sshsha.obj \
+		tree234.obj version.obj winctrls.obj winhelp.obj winmisc.obj \
+		winnoise.obj winnojmp.obj winpgen.obj winstore.obj \
+		wintime.obj winutils.obj puttygen.rsp
 	ilink32 -aa -Gn -L$(BCB)\lib @puttygen.rsp
 
 puttytel.exe: PickIconDialog.obj be_nos_s.obj cmdline.obj config.obj \
@@ -309,13 +309,14 @@ putty.rsp: $(MAKEFILE)
 
 puttygen.rsp: $(MAKEFILE)
 	echo c0w32 + > puttygen.rsp
-	echo import.obj misc.obj notiming.obj sshaes.obj + >> puttygen.rsp
-	echo sshbn.obj sshdes.obj sshdss.obj sshdssg.obj + >> puttygen.rsp
-	echo sshmd5.obj sshprime.obj sshpubk.obj sshrand.obj + >> puttygen.rsp
-	echo sshrsa.obj sshrsag.obj sshsh256.obj sshsh512.obj + >> puttygen.rsp
-	echo sshsha.obj tree234.obj version.obj winctrls.obj + >> puttygen.rsp
-	echo winhelp.obj winmisc.obj winnoise.obj winnojmp.obj + >> puttygen.rsp
-	echo winpgen.obj winstore.obj wintime.obj winutils.obj >> puttygen.rsp
+	echo PickIconDialog.obj import.obj misc.obj + >> puttygen.rsp
+	echo notiming.obj sshaes.obj sshbn.obj sshdes.obj + >> puttygen.rsp
+	echo sshdss.obj sshdssg.obj sshmd5.obj sshprime.obj + >> puttygen.rsp
+	echo sshpubk.obj sshrand.obj sshrsa.obj sshrsag.obj + >> puttygen.rsp
+	echo sshsh256.obj sshsh512.obj sshsha.obj tree234.obj + >> puttygen.rsp
+	echo version.obj winctrls.obj winhelp.obj winmisc.obj + >> puttygen.rsp
+	echo winnoise.obj winnojmp.obj winpgen.obj + >> puttygen.rsp
+	echo winstore.obj wintime.obj winutils.obj >> puttygen.rsp
 	echo puttygen.exe >> puttygen.rsp
 	echo nul,cw32 import32 ole32, >> puttygen.rsp
 	echo puttygen.res >> puttygen.rsp
