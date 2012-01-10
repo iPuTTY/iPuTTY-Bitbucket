@@ -1103,7 +1103,7 @@
 				</FileConfiguration>
 			</File>
 			<File
-				RelativePath="..\..\urlhack.cpp"
+				RelativePath="..\..\urlhack.c"
 				>
 			</File>
 			<File
