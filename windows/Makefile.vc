@@ -112,7 +112,7 @@ CFLAGS = /nologo /W3 /O1 -I..\./ -I..\charset/ -I..\windows/ -I..\unix/ -I..\mac
 LFLAGS = /incremental:no /fixed
 RCFLAGS = -DWIN32 -D_WIN32 -DWINVER=0x0400
 
-CFLAGS = $(CFLAGS) /DHAS_GSSAPI /DSECURITY_WIN32
+CFLAGS = $(CFLAGS) /DHAS_GSSAPI /DSECURITY_WIN32 /DONTHESPOT
 RCFLAGS = $(RCFLAGS) $(VER)
 
 
