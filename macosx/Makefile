@@ -104,8 +104,8 @@
 #
 CC = $(TOOLPATH)gcc
 
-CFLAGS = -O2 -Wall -Werror -g -I.././ -I../charset/ -I../windows/ \
-		-I../windows/re_lib -I../unix/ -I../macosx/
+CFLAGS = -O2 -Wall -Werror -g -I.././ -I../charset/ -I../windows/ -I../unix/ \
+		-I../macosx/
 MLDFLAGS = -framework Cocoa
 ULDFLAGS =
 

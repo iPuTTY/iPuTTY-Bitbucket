@@ -108,7 +108,7 @@
 MAKEFILE = Makefile.lcc
 
 # C compilation flags
-CFLAGS = -D_WINDOWS -I..\./ -I..\charset/ -I..\windows/ -I..\windows/re_lib -I..\unix/ -I..\macosx/
+CFLAGS = -D_WINDOWS -I..\./ -I..\charset/ -I..\windows/ -I..\unix/ -I..\macosx/
 # Resource compilation flags
 RCFLAGS = 
 
@@ -236,21 +236,22 @@ putty.exe: PickIconDialog.obj be_all_s.obj cmdline.obj config.obj cproxy.obj \
 		shell32.lib wsock32.lib ws2_32.lib winspool.lib winmm.lib \
 		imm32.lib
 
-puttygen.exe: import.obj misc.obj notiming.obj puttygen.res sshaes.obj \
-		sshbn.obj sshdes.obj sshdss.obj sshdssg.obj sshmd5.obj \
-		sshprime.obj sshpubk.obj sshrand.obj sshrsa.obj sshrsag.obj \
-		sshsh256.obj sshsh512.obj sshsha.obj tree234.obj version.obj \
-		winctrls.obj winhelp.obj winmisc.obj winnoise.obj \
-		winnojmp.obj winpgen.obj winstore.obj wintime.obj \
-		winutils.obj
-	lcclnk -subsystem  windows -o puttygen.exe import.obj misc.obj notiming.obj \
+puttygen.exe: PickIconDialog.obj import.obj misc.obj notiming.obj \
 		puttygen.res sshaes.obj sshbn.obj sshdes.obj sshdss.obj \
 		sshdssg.obj sshmd5.obj sshprime.obj sshpubk.obj sshrand.obj \
 		sshrsa.obj sshrsag.obj sshsh256.obj sshsh512.obj sshsha.obj \
 		tree234.obj version.obj winctrls.obj winhelp.obj winmisc.obj \
 		winnoise.obj winnojmp.obj winpgen.obj winstore.obj \
-		wintime.obj winutils.obj shell32.lib wsock32.lib ws2_32.lib \
-		winspool.lib winmm.lib imm32.lib
+		wintime.obj winutils.obj
+	lcclnk -subsystem  windows -o puttygen.exe PickIconDialog.obj import.obj \
+		misc.obj notiming.obj puttygen.res sshaes.obj sshbn.obj \
+		sshdes.obj sshdss.obj sshdssg.obj sshmd5.obj sshprime.obj \
+		sshpubk.obj sshrand.obj sshrsa.obj sshrsag.obj sshsh256.obj \
+		sshsh512.obj sshsha.obj tree234.obj version.obj winctrls.obj \
+		winhelp.obj winmisc.obj winnoise.obj winnojmp.obj \
+		winpgen.obj winstore.obj wintime.obj winutils.obj \
+		shell32.lib wsock32.lib ws2_32.lib winspool.lib winmm.lib \
+		imm32.lib
 
 puttytel.exe: PickIconDialog.obj be_nos_s.obj cmdline.obj config.obj \
 		dialog.obj ldisc.obj ldiscucs.obj logging.obj minibidi.obj \
