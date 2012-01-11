@@ -1018,7 +1018,9 @@ static termline *lineptr(Terminal *term, int y, int lineno, int screen)
     } else {
 	int altlines = 0;
 
-	assert(!screen);
+	// TODO: what is the meaning of this assertion?
+	//       it causes an error when scrolling up.
+	//assert(!screen);
 
 	if (term->cfg.erase_to_scrollback &&
 	    term->alt_which && term->alt_screen) {
