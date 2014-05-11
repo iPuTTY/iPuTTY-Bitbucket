@@ -896,7 +896,7 @@ void cleanup_exit(int);
     X(INT, NONE, url_underline) \
     X(INT, NONE, url_defbrowser) \
     X(INT, NONE, url_defregex) \
-    X(STR, NONE, url_browser) \
+    X(FILENAME, NONE, url_browser) \
     X(STR, NONE, url_regex) \
     /*			\
      * HACK: PuttyTray	\

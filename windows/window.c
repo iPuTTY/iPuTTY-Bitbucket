@@ -1671,7 +1671,7 @@ static void init_fonts(int pick_width, int pick_height)
     f(FONT_NORMAL, font->charset, fw_dontcare, FALSE, FALSE);
     f(FONT_ITALIC, font->charset, fw_dontcare, FALSE, TRUE);
     if (conf_get_int(conf, CONF_use_font_unicode)) {
-	FontSpec *font_unicode = conf_get_fontspec(font, CONF_font_unicode);
+	FontSpec *font_unicode = conf_get_fontspec(conf, CONF_font_unicode);
 	fonts[FONT_UNICODE] = CreateFont (font_height, font_width, 0, 0, fw_dontcare, FALSE, FALSE, FALSE, \
 					  font_unicode->charset, OUT_DEFAULT_PRECIS, \
 					  CLIP_DEFAULT_PRECIS, FONT_QUALITY(quality), \

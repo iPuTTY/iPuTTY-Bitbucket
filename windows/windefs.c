@@ -8,7 +8,6 @@
 
 FontSpec *platform_default_fontspec(const char *name)
 {
-    FontSpec ret;
     /*
      * HACK: PuttyTray / Vista
      * Check windows version and set default font to 'consolas' if this is Windows Vista
@@ -23,7 +22,7 @@ FontSpec *platform_default_fontspec(const char *name)
 	else
 	    return fontspec_new("Courier New", 0, 10, ANSI_CHARSET);
     } else if (!strcmp(name, "FontUnicode")) {
-	return fontspec_new("³ª´®°íµñÄÚµù", 0, 10, ANSI_CHARSET);
+	return fontspec_new("³ª´®°íµñÄÚµù", 0, 10, HANGEUL_CHARSET);
     } else {
 	return fontspec_new("", 0, 0, 0);
     }

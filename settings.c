@@ -692,8 +692,8 @@ void save_open_settings(void *sesskey, Conf *conf)
     write_setting_i(sesskey, "HyperlinkUnderline", conf_get_int(conf, CONF_url_underline));
     write_setting_i(sesskey, "HyperlinkUseCtrlClick", conf_get_int(conf, CONF_url_ctrl_click));
     write_setting_i(sesskey, "HyperlinkBrowserUseDefault", conf_get_int(conf, CONF_url_defbrowser));
-    write_setting_s(sesskey, "HyperlinkBrowser", conf_get_str(conf, CONF_url_browser));
     write_setting_i(sesskey, "HyperlinkRegularExpressionUseDefault", conf_get_int(conf, CONF_url_defregex));
+    write_setting_filename(sesskey, "HyperlinkBrowser", conf_get_filename(conf, CONF_url_browser));
     write_setting_s(sesskey, "HyperlinkRegularExpression", conf_get_str(conf, CONF_url_regex));
 }
 
@@ -1119,8 +1119,8 @@ void load_open_settings(void *sesskey, Conf *conf)
     gppi(sesskey, "HyperlinkUnderline", 1, conf, CONF_url_underline);
     gppi(sesskey, "HyperlinkUseCtrlClick", 0, conf, CONF_url_ctrl_click);
     gppi(sesskey, "HyperlinkBrowserUseDefault", 1, conf, CONF_url_defbrowser);
-    gpps(sesskey, "HyperlinkBrowser", "", conf, CONF_url_browser);
     gppi(sesskey, "HyperlinkRegularExpressionUseDefault", 1, conf, CONF_url_defregex);
+    gppfile(sesskey, "HyperlinkBrowser", conf, CONF_url_browser);
     gpps(sesskey, "HyperlinkRegularExpression", urlhack_default_regex, conf, CONF_url_regex);
 }
 

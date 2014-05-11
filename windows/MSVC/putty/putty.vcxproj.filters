@@ -210,16 +210,10 @@
     <ClCompile Include="..\..\..\x11fwd.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\..\nogss.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="..\..\..\pgssapi.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\..\sshgssc.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="..\..\..\sshnogss.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="..\..\wingss.c">
@@ -228,10 +222,10 @@
     <ClCompile Include="..\..\winjump.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\winnojmp.c">
+    <ClCompile Include="..\..\winx11.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="..\..\winx11.c">
+    <ClCompile Include="..\..\..\conf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
