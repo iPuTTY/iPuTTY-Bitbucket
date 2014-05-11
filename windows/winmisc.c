@@ -539,10 +539,11 @@ HICON extract_icon(char *iconpath, int smallicon)
     } else {
 	return hiconLarge;
     }
-};
+}
 
 FontSpec *fontspec_new(const char *name,
                        int bold, int height, int charset)
+{
     FontSpec *f = snew(FontSpec);
     f->name = dupstr(name);
     f->isbold = bold;

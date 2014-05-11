@@ -75,14 +75,14 @@ static void registry_recursive_remove(HKEY key);
 void *file_open_settings_w(const char *sessionname, char **errmsg);
 void file_write_setting_s(void *handle, const char *key, const char *value);
 void file_write_setting_i(void *handle, const char *key, int value);
-void file_write_setting_filename(void *handle, const char *key, Filename value);
-void file_write_setting_fontspec(void *handle, const char *key, FontSpec font);
+void file_write_setting_filename(void *handle, const char *key, Filename *value);
+void file_write_setting_fontspec(void *handle, const char *key, FontSpec *font);
 void file_close_settings_w(void *handle);
 void *file_open_settings_r(const char *sessionname);
 char *file_read_setting_s(void *handle, const char *key);
 int file_read_setting_i(void *handle, const char *key, int defvalue);
-int file_read_setting_filename(void *handle, const char *key, Filename *value);
-int file_read_setting_fontspec(void *handle, const char *key, FontSpec *font);
+Filename *file_read_setting_filename(void *handle, const char *key);
+FontSpec *file_read_setting_fontspec(void *handle, const char *key);
 void file_close_settings_r(void *handle);
 void file_del_settings(const char *sessionname);
 void *file_enum_settings_start();
@@ -95,14 +95,14 @@ void file_store_host_key(const char *hostname, int port, const char *keytype, co
 void *reg_open_settings_w(const char *sessionname, char **errmsg);
 void reg_write_setting_s(void *handle, const char *key, const char *value);
 void reg_write_setting_i(void *handle, const char *key, int value);
-void reg_write_setting_filename(void *handle, const char *key, Filename value);
-void reg_write_setting_fontspec(void *handle, const char *key, FontSpec font);
+void reg_write_setting_filename(void *handle, const char *key, Filename *value);
+void reg_write_setting_fontspec(void *handle, const char *key, FontSpec *font);
 void reg_close_settings_w(void *handle);
 void *reg_open_settings_r(const char *sessionname);
 char *reg_read_setting_s(void *handle, const char *key);
 int reg_read_setting_i(void *handle, const char *key, int defvalue);
-int reg_read_setting_filename(void *handle, const char *key, Filename *value);
-int reg_read_setting_fontspec(void *handle, const char *key, FontSpec *font);
+Filename *reg_read_setting_filename(void *handle, const char *key);
+FontSpec *reg_read_setting_fontspec(void *handle, const char *key);
 void reg_close_settings_r(void *handle);
 void reg_del_settings(const char *sessionname);
 void *reg_enum_settings_start();
@@ -174,19 +174,19 @@ void write_setting_i(void *handle, const char *key, int value)
 /*
  * STORAGETYPE SWITCHER
  */
-void write_setting_filename(void *handle, const char *name, Filename result)
+void write_setting_filename(void *handle, const char *name, Filename *value)
 {
     if (storagetype == 1) {
-	file_write_setting_filename(handle, name, result);
+	file_write_setting_filename(handle, name, value);
     } else {
-	reg_write_setting_filename(handle, name, result);
+	reg_write_setting_filename(handle, name, value);
     }
 }
 
 /*
  * STORAGETYPE SWITCHER
  */
-void write_setting_fontspec(void *handle, const char *name, FontSpec font)
+void write_setting_fontspec(void *handle, const char *name, FontSpec *font)
 {
     if (storagetype == 1) {
 	file_write_setting_fontspec(handle, name, font);
@@ -262,24 +262,24 @@ int read_setting_i(void *handle, const char *key, int defvalue)
 /*
  * STORAGETYPE SWITCHER
  */
-int read_setting_fontspec(void *handle, const char *name, FontSpec *result)
+FontSpec *read_setting_fontspec(void *handle, const char *name)
 {
     if (storagetype == 1) {
-	return file_read_setting_fontspec(handle, name, result);
+	return file_read_setting_fontspec(handle, name);
     } else {
-	return reg_read_setting_fontspec(handle, name, result);
+	return reg_read_setting_fontspec(handle, name);
     }
 }
 
 /*
  * STORAGETYPE SWITCHER
  */
-int read_setting_filename(void *handle, const char *name, Filename *result)
+Filename *read_setting_filename(void *handle, const char *name)
 {
     if (storagetype == 1) {
-	return file_read_setting_filename(handle, name, result);
+	return file_read_setting_filename(handle, name);
     } else {
-	return reg_read_setting_filename(handle, name, result);
+	return reg_read_setting_filename(handle, name);
     }
 }
 
@@ -397,259 +397,6 @@ void store_host_key(const char *hostname, int port, const char *keytype, const c
 	reg_store_host_key(hostname, port, keytype, key);
     }
 }
-
-
-/* ----------------------------------------------------------------------
- * Functions to access PuTTY's random number seed file.
- */
-/*
- * HELPER FOR RANDOM SEED FUNCTIONS (not part of storage.h)
- * Open (or delete) the random seed file.
- *
- * NO HACK: PuttyTray / PuTTY File - This is an original function (not patched)
- */
-static int try_random_seed(char const *path, int action, HANDLE *ret)
-{
-    if (action == DEL) {
-	remove(path);
-	*ret = INVALID_HANDLE_VALUE;
-	return FALSE;		       /* so we'll do the next ones too */
-    }
-
-    *ret = CreateFile(path,
-		      action == OPEN_W ? GENERIC_WRITE : GENERIC_READ,
-		      action == OPEN_W ? 0 : (FILE_SHARE_READ |
-					      FILE_SHARE_WRITE),
-		      NULL,
-		      action == OPEN_W ? CREATE_ALWAYS : OPEN_EXISTING,
-		      action == OPEN_W ? FILE_ATTRIBUTE_NORMAL : 0,
-		      NULL);
-
-    return (*ret != INVALID_HANDLE_VALUE);
-}
-
- /*
-  * HELPER FOR RANDOM SEED FUNCTIONS (not part of storage.h)
-  * 
-  * PARTLY HACKED: PuttyTray / PuTTY File - This is an original function (only first lines patched)
-  */
-static HANDLE access_random_seed(int action)
-{
-    HKEY rkey;
-    DWORD type, size;
-    HANDLE rethandle = INVALID_HANDLE_VALUE;
-    char seedpath[2 * MAX_PATH + 10] = "\0";
-
-	/* PuttyTray / PuTTY File - HACK STARTS HERE */
-	if (seedpath != '\0') {
-		/* JK: In PuTTY 0.58 this won't ever happen - this function was called only if (!seedpath[0])
-		 * This changed in PuTTY 0.59 - read the long comment below
-		 */
-		return INVALID_HANDLE_VALUE;
-	}
-	/* PuttyTray / PuTTY File - HACK ENDS HERE */
-
-    /*
-     * Iterate over a selection of possible random seed paths until
-     * we find one that works.
-     * 
-     * We do this iteration separately for reading and writing,
-     * meaning that we will automatically migrate random seed files
-     * if a better location becomes available (by reading from the
-     * best location in which we actually find one, and then
-     * writing to the best location in which we can _create_ one).
-     */
-
-    /*
-     * First, try the location specified by the user in the
-     * Registry, if any.
-     */
-    size = sizeof(seedpath);
-    if (RegOpenKey(HKEY_CURRENT_USER, PUTTY_REG_POS, &rkey) ==
-	ERROR_SUCCESS) {
-	int ret = RegQueryValueEx(rkey, "RandSeedFile",
-				  0, &type, seedpath, &size);
-	if (ret != ERROR_SUCCESS || type != REG_SZ)
-	    seedpath[0] = '\0';
-	RegCloseKey(rkey);
-
-	if (*seedpath && try_random_seed(seedpath, action, &rethandle))
-	    return rethandle;
-    }
-
-    /*
-     * Next, try the user's local Application Data directory,
-     * followed by their non-local one. This is found using the
-     * SHGetFolderPath function, which won't be present on all
-     * versions of Windows.
-     */
-    if (!tried_shgetfolderpath) {
-	/* This is likely only to bear fruit on systems with IE5+
-	 * installed, or WinMe/2K+. There is some faffing with
-	 * SHFOLDER.DLL we could do to try to find an equivalent
-	 * on older versions of Windows if we cared enough.
-	 * However, the invocation below requires IE5+ anyway,
-	 * so stuff that. */
-	shell32_module = load_system32_dll("shell32.dll");
-	GET_WINDOWS_FUNCTION(shell32_module, SHGetFolderPathA);
-	tried_shgetfolderpath = TRUE;
-    }
-    if (p_SHGetFolderPathA) {
-	if (SUCCEEDED(p_SHGetFolderPathA(NULL, CSIDL_LOCAL_APPDATA,
-					 NULL, SHGFP_TYPE_CURRENT, seedpath))) {
-	    strcat(seedpath, "\\PUTTY.RND");
-	    if (try_random_seed(seedpath, action, &rethandle))
-		return rethandle;
-	}
-
-	if (SUCCEEDED(p_SHGetFolderPathA(NULL, CSIDL_APPDATA,
-					 NULL, SHGFP_TYPE_CURRENT, seedpath))) {
-	    strcat(seedpath, "\\PUTTY.RND");
-	    if (try_random_seed(seedpath, action, &rethandle))
-		return rethandle;
-	}
-    }
-
-    /*
-     * Failing that, try %HOMEDRIVE%%HOMEPATH% as a guess at the
-     * user's home directory.
-     */
-    {
-	int len, ret;
-
-	len =
-	    GetEnvironmentVariable("HOMEDRIVE", seedpath,
-				   sizeof(seedpath));
-	ret =
-	    GetEnvironmentVariable("HOMEPATH", seedpath + len,
-				   sizeof(seedpath) - len);
-	if (ret != 0) {
-	    strcat(seedpath, "\\PUTTY.RND");
-	    if (try_random_seed(seedpath, action, &rethandle))
-		return rethandle;
-	}
-    }
-
-    /*
-     * And finally, fall back to C:\WINDOWS.
-     */
-    GetWindowsDirectory(seedpath, sizeof(seedpath));
-    strcat(seedpath, "\\PUTTY.RND");
-    if (try_random_seed(seedpath, action, &rethandle))
-	return rethandle;
-
-    /*
-     * If even that failed, give up.
-     */
-    return INVALID_HANDLE_VALUE;
-}
-
-
-/*
- * Read PuTTY's random seed file and pass its contents to a noise
- * consumer function.
- *
- * NO HACK: PuttyTray / PuTTY File - This is an original function (not patched)
- */
-void read_random_seed(noise_consumer_t consumer)
-{
-    HANDLE seedf = access_random_seed(OPEN_R);
-
-    if (seedf != INVALID_HANDLE_VALUE) {
-	while (1) {
-	    char buf[1024];
-	    DWORD len;
-
-	    if (ReadFile(seedf, buf, sizeof(buf), &len, NULL) && len)
-		consumer(buf, len);
-	    else
-		break;
-	}
-	CloseHandle(seedf);
-    }
-}
-
-/*
- * Write PuTTY's random seed file from a given chunk of noise.
- *
- * NO HACK: PuttyTray / PuTTY File - This is an original function (not patched)
- */
-void write_random_seed(void *data, int len)
-{
-    HANDLE seedf = access_random_seed(OPEN_W);
-
-    if (seedf != INVALID_HANDLE_VALUE) {
-	DWORD lenwritten;
-
-	WriteFile(seedf, data, len, &lenwritten, NULL);
-	CloseHandle(seedf);
-    }
-}
-
-
-/* ----------------------------------------------------------------------
- * Cleanup function: remove all of PuTTY's persistent state.
- *
- * NO HACK: PuttyTray / PuTTY File - This is an original function (not patched)
- */
-void cleanup_all(void)
-{
-    HKEY key;
-    int ret;
-    char name[MAX_PATH + 1];
-
-    /* ------------------------------------------------------------
-     * Wipe out the random seed file, in all of its possible
-     * locations.
-     */
-    access_random_seed(DEL);
-    
-    /* ------------------------------------------------------------
-     * Ask Windows to delete any jump list information associated
-     * with this installation of PuTTY.
-     */
-    clear_jumplist();
-
-    /* ------------------------------------------------------------
-     * Destroy all registry information associated with PuTTY.
-     */
-
-    /*
-     * Open the main PuTTY registry key and remove everything in it.
-     */
-    if (RegOpenKey(HKEY_CURRENT_USER, PUTTY_REG_POS, &key) ==
-	ERROR_SUCCESS) {
-	registry_recursive_remove(key);
-	RegCloseKey(key);
-    }
-    /*
-     * Now open the parent key and remove the PuTTY main key. Once
-     * we've done that, see if the parent key has any other
-     * children.
-     */
-    if (RegOpenKey(HKEY_CURRENT_USER, PUTTY_REG_PARENT,
-		   &key) == ERROR_SUCCESS) {
-	RegDeleteKey(key, PUTTY_REG_PARENT_CHILD);
-	ret = RegEnumKey(key, 0, name, sizeof(name));
-	RegCloseKey(key);
-	/*
-	 * If the parent key had no other children, we must delete
-	 * it in its turn. That means opening the _grandparent_
-	 * key.
-	 */
-	if (ret != ERROR_SUCCESS) {
-	    if (RegOpenKey(HKEY_CURRENT_USER, PUTTY_REG_GPARENT,
-			   &key) == ERROR_SUCCESS) {
-		RegDeleteKey(key, PUTTY_REG_GPARENT_CHILD);
-		RegCloseKey(key);
-	    }
-	}
-    }
-    /*
-     * Now we're done.
-     */
-}
-
 
 /* ----------------------------------------------------------------------
  * PUTTY FILE HELPERS (not part of storage.h)
@@ -971,189 +718,6 @@ static void unmungestr(const char *in, char *out, int outlen)
     *out = '\0';
     return;
 }
-
-/*
- * Internal function supporting the jump list registry code. All the
- * functions to add, remove and read the list have substantially
- * similar content, so this is a generalisation of all of them which
- * transforms the list in the registry by prepending 'add' (if
- * non-null), removing 'rem' from what's left (if non-null), and
- * returning the resulting concatenated list of strings in 'out' (if
- * non-null).
- */
-static int transform_jumplist_registry
-    (const char *add, const char *rem, char **out)
-{
-    int ret;
-    HKEY pjumplist_key, psettings_tmp;
-    DWORD type;
-    int value_length;
-    char *old_value, *new_value;
-    char *piterator_old, *piterator_new, *piterator_tmp;
-
-    ret = RegCreateKeyEx(HKEY_CURRENT_USER, reg_jumplist_key, 0, NULL,
-                         REG_OPTION_NON_VOLATILE, (KEY_READ | KEY_WRITE), NULL,
-                         &pjumplist_key, NULL);
-    if (ret != ERROR_SUCCESS) {
-	return JUMPLISTREG_ERROR_KEYOPENCREATE_FAILURE;
-    }
-
-    /* Get current list of saved sessions in the registry. */
-    value_length = 200;
-    old_value = snewn(value_length, char);
-    ret = RegQueryValueEx(pjumplist_key, reg_jumplist_value, NULL, &type,
-                          (LPBYTE) old_value, (LPDWORD) &value_length);
-    /* When the passed buffer is too small, ERROR_MORE_DATA is
-     * returned and the required size is returned in the length
-     * argument. */
-    if (ret == ERROR_MORE_DATA) {
-        sfree(old_value);
-        old_value = snewn(value_length, char);
-        ret = RegQueryValueEx(pjumplist_key, reg_jumplist_value, NULL, &type,
-                              (LPBYTE) old_value, (LPDWORD) &value_length);
-    }
-
-    if (ret == ERROR_FILE_NOT_FOUND) {
-        /* Value doesn't exist yet. Start from an empty value. */
-        *old_value = '\0';
-        *(old_value + 1) = '\0';
-    } else if (ret != ERROR_SUCCESS) {
-        /* Some non-recoverable error occurred. */
-        sfree(old_value);
-        RegCloseKey(pjumplist_key);
-        return JUMPLISTREG_ERROR_VALUEREAD_FAILURE;
-    } else if (type != REG_MULTI_SZ) {
-        /* The value present in the registry has the wrong type: we
-         * try to delete it and start from an empty value. */
-        ret = RegDeleteValue(pjumplist_key, reg_jumplist_value);
-        if (ret != ERROR_SUCCESS) {
-            sfree(old_value);
-            RegCloseKey(pjumplist_key);
-            return JUMPLISTREG_ERROR_VALUEREAD_FAILURE;
-        }
-
-        *old_value = '\0';
-        *(old_value + 1) = '\0';
-    }
-
-    /* Check validity of registry data: REG_MULTI_SZ value must end
-     * with \0\0. */
-    piterator_tmp = old_value;
-    while (((piterator_tmp - old_value) < (value_length - 1)) &&
-           !(*piterator_tmp == '\0' && *(piterator_tmp+1) == '\0')) {
-        ++piterator_tmp;
-    }
-
-    if ((piterator_tmp - old_value) >= (value_length-1)) {
-        /* Invalid value. Start from an empty value. */
-        *old_value = '\0';
-        *(old_value + 1) = '\0';
-    }
-
-    /*
-     * Modify the list, if we're modifying.
-     */
-    if (add || rem) {
-        /* Walk through the existing list and construct the new list of
-         * saved sessions. */
-        new_value = snewn(value_length + (add ? strlen(add) + 1 : 0), char);
-        piterator_new = new_value;
-        piterator_old = old_value;
-
-        /* First add the new item to the beginning of the list. */
-        if (add) {
-            strcpy(piterator_new, add);
-            piterator_new += strlen(piterator_new) + 1;
-        }
-        /* Now add the existing list, taking care to leave out the removed
-         * item, if it was already in the existing list. */
-        while (*piterator_old != '\0') {
-            if (!rem || strcmp(piterator_old, rem) != 0) {
-                /* Check if this is a valid session, otherwise don't add. */
-                psettings_tmp = (HKEY) open_settings_r(piterator_old);
-                if (psettings_tmp != NULL) {
-                    close_settings_r(psettings_tmp);
-                    strcpy(piterator_new, piterator_old);
-                    piterator_new += strlen(piterator_new) + 1;
-                }
-            }
-            piterator_old += strlen(piterator_old) + 1;
-        }
-        *piterator_new = '\0';
-        ++piterator_new;
-
-        /* Save the new list to the registry. */
-        ret = RegSetValueEx(pjumplist_key, reg_jumplist_value, 0, REG_MULTI_SZ,
-                            (const BYTE*) new_value, piterator_new - new_value);
-
-        sfree(old_value);
-        old_value = new_value;
-    } else
-        ret = ERROR_SUCCESS;
-
-    /*
-     * Either return or free the result.
-     */
-    if (out)
-        *out = old_value;
-    else
-        sfree(old_value);
-
-    /* Clean up and return. */
-    RegCloseKey(pjumplist_key);
-
-    if (ret != ERROR_SUCCESS) {
-        return JUMPLISTREG_ERROR_VALUEWRITE_FAILURE;
-    } else {
-        return JUMPLISTREG_OK;
-    }
-}
-
-/* Adds a new entry to the jumplist entries in the registry. */
-int add_to_jumplist_registry(const char *item)
-{
-    return transform_jumplist_registry(item, item, NULL);
-}
-
-/* Removes an item from the jumplist entries in the registry. */
-int remove_from_jumplist_registry(const char *item)
-{
-    return transform_jumplist_registry(NULL, item, NULL);
-}
-
-/* Returns the jumplist entries from the registry. Caller must free
- * the returned pointer. */
-char *get_jumplist_registry_entries (void)
-{
-    char *list_value;
-
-    if (transform_jumplist_registry(NULL,NULL,&list_value) != ERROR_SUCCESS) {
-	list_value = snewn(2, char);
-        *list_value = '\0';
-        *(list_value + 1) = '\0';
-    }
-    return list_value;
-}
-
-/*
- * Recursively delete a registry key and everything under it.
- */
-static void registry_recursive_remove(HKEY key)
-{
-    DWORD i;
-    char name[MAX_PATH + 1];
-    HKEY subkey;
-
-    i = 0;
-    while (RegEnumKey(key, i, name, sizeof(name)) == ERROR_SUCCESS) {
-	if (RegOpenKey(key, name, &subkey) == ERROR_SUCCESS) {
-	    registry_recursive_remove(subkey);
-	    RegCloseKey(subkey);
-	}
-	RegDeleteKey(key, name);
-    }
-}
-
 
 /* ---------------------------------------------------------------------------------------------------------
  * ---------------------------------------------------------------------------------------------------------
@@ -1542,53 +1106,75 @@ int file_read_setting_i(void *handle, const char *key, int defvalue)
     return defvalue;
 }
 
-int file_read_setting_fontspec(void *handle, const char *name, FontSpec *result)
+FontSpec *file_read_setting_fontspec(void *handle, const char *name)
 {
     char *settingname;
-    FontSpec ret;
+    char *fontname;
+    FontSpec *ret;
+    int isbold, height, charset;
 
-    if (!file_read_setting_s(handle, name, ret.name, sizeof(ret.name)))
-	return 0;
+    fontname = file_read_setting_s(handle, name, fontname);
+    if (!fontname)
+	return NULL;
     settingname = dupcat(name, "IsBold", NULL);
-    ret.isbold = file_read_setting_i(handle, settingname, -1);
+    isbold = file_read_setting_i(handle, settingname, -1);
     sfree(settingname);
-    if (ret.isbold == -1) return 0;
+    if (isbold == -1) {
+	sfree(fontname);
+	return NULL;
+    }
+
     settingname = dupcat(name, "CharSet", NULL);
-    ret.charset = file_read_setting_i(handle, settingname, -1);
+    charset = file_read_setting_i(handle, settingname, -1);
     sfree(settingname);
-    if (ret.charset == -1) return 0;
+    if (charset == -1) {
+	sfree(fontname);
+	return NULL;
+    }
+
     settingname = dupcat(name, "Height", NULL);
-    ret.height = file_read_setting_i(handle, settingname, INT_MIN);
+    height = file_read_setting_i(handle, settingname, INT_MIN);
     sfree(settingname);
-    if (ret.height == INT_MIN) return 0;
-    *result = ret;
-    return 1;
+    if (height == INT_MIN) {
+	sfree(fontname);
+	return NULL;
+    }
+
+    ret = fontspec_new(fontname, isbold, height, charset);
+    sfree(fontname);
+    return ret;
 }
 
-void file_write_setting_fontspec(void *handle, const char *name, FontSpec font)
+void file_write_setting_fontspec(void *handle, const char *name, FontSpec *font)
 {
     char *settingname;
 
-    file_write_setting_s(handle, name, font.name);
+    file_write_setting_s(handle, name, font->name);
     settingname = dupcat(name, "IsBold", NULL);
-    file_write_setting_i(handle, settingname, font.isbold);
+    file_write_setting_i(handle, settingname, font->isbold);
     sfree(settingname);
     settingname = dupcat(name, "CharSet", NULL);
-    file_write_setting_i(handle, settingname, font.charset);
+    file_write_setting_i(handle, settingname, font->charset);
     sfree(settingname);
     settingname = dupcat(name, "Height", NULL);
-    file_write_setting_i(handle, settingname, font.height);
+    file_write_setting_i(handle, settingname, font->height);
     sfree(settingname);
 }
 
-int file_read_setting_filename(void *handle, const char *name, Filename *result)
+Filename *file_read_setting_filename(void *handle, const char *name)
 {
-    return !!file_read_setting_s(handle, name, result->path, sizeof(result->path));
+    char *tmp = file_read_setting_s(handle, name);
+    if (tmp) {
+        Filename *ret = filename_from_str(tmp);
+	sfree(tmp);
+	return ret;
+    } else
+	return NULL;
 }
 
-void file_write_setting_filename(void *handle, const char *name, Filename result)
+void file_write_setting_filename(void *handle, const char *name, Filename *value)
 {
-    file_write_setting_s(handle, name, result.path);
+    file_write_setting_s(handle, name, value->path);
 }
 
 void file_close_settings_r(void *handle)
@@ -2393,7 +1979,6 @@ void reg_store_host_key(const char *hostname, int port,
 /*
  * Open (or delete) the random seed file.
  */
-enum { DEL, OPEN_R, OPEN_W };
 static int try_random_seed(char const *path, int action, HANDLE *ret)
 {
     if (action == DEL) {
@@ -2423,6 +2008,14 @@ static HANDLE access_random_seed(int action)
     DWORD type, size;
     HANDLE rethandle;
     char seedpath[2 * MAX_PATH + 10] = "\0";
+
+    /* HACK: PuttyTray / PuTTY File */
+    if (seedpath != '\0') {
+	/* JK: In PuTTY 0.58 this won't ever happen - this function was called only if (!seedpath[0])
+	 * This changed in PuTTY 0.59 - read the long comment below
+	 */
+	return INVALID_HANDLE_VALUE;
+    }
 
     /*
      * Iterate over a selection of possible random seed paths until

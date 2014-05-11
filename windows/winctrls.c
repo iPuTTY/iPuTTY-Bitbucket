@@ -966,19 +966,19 @@ void prefslist(struct prefslist *hdl, struct ctlpos *cp, int lines,
  */ 
 void staticicon(struct ctlpos *cp, char *stext, char *iname, int id)
 {
-	RECT r;
-	HWND hcontrol;
-	HICON hicon;
+    RECT r;
+    HWND hcontrol;
+    HICON hicon;
 
-	r.left = GAPBETWEEN;
-	r.top = cp->ypos;
-	r.right = cp->width;
-	r.bottom = ICONHEIGHT;
-	cp->ypos += r.bottom + GAPBETWEEN;
-	hcontrol = doctl(cp, r, "STATIC",
-		WS_CHILD | WS_VISIBLE | SS_ICON, 0, NULL, id);
-	hicon = extract_icon(iname, FALSE);
-	SendMessage(hcontrol, STM_SETICON, (WPARAM) hicon, 0);
+    r.left = GAPBETWEEN;
+    r.top = cp->ypos;
+    r.right = cp->width;
+    r.bottom = ICONHEIGHT;
+    cp->ypos += r.bottom + GAPBETWEEN;
+    hcontrol = doctl(cp, r, "STATIC",
+	    WS_CHILD | WS_VISIBLE | SS_ICON, 0, NULL, id);
+    hicon = extract_icon(iname, FALSE);
+    SendMessage(hcontrol, STM_SETICON, (WPARAM) hicon, 0);
 }
 
 /*
@@ -1357,7 +1357,7 @@ void winctrl_layout(struct dlgparam *dp, struct winctrls *wc,
     int i, actual_base_id, base_id, num_ids;
     void *data;
 
-    Config *cfg = (Config *)dp->data;
+    Conf *conf = (Conf *)dp->data;
 
     base_id = *id;
 
@@ -1550,12 +1550,12 @@ void winctrl_layout(struct dlgparam *dp, struct winctrls *wc,
 	    sfree(escaped);
 	    break;
 
-	/*
-	 * HACK: PuttyTray / Session Icon
-	 */ 
+	  /*
+	   * HACK: PuttyTray / Session Icon
+	   */ 
 	  case CTRL_ICON:
 	    num_ids = 1;
-	    staticicon(&pos, ctrl->icon.label, (char *) ATOFFSET(cfg, ctrl->icon.context.i), base_id);
+	    staticicon(&pos, ctrl->icon.label, conf_get_str(conf, CONF_win_icon), base_id);
 	    break;
 
 	  case CTRL_RADIO:
@@ -2283,13 +2283,12 @@ void dlg_text_set(union control *ctrl, void *dlg, char const *text)
  */ 
 void dlg_icon_set(union control *ctrl, void *dlg, char const *icon)
 {
-	HICON hicon;
-
-	struct dlgparam *dp = (struct dlgparam *) dlg;
-	struct winctrl *c = dlg_findbyctrl(dp, ctrl);
-	assert(c && c->ctrl->generic.type == CTRL_ICON);
-	hicon = extract_icon((char *) icon, FALSE);
-	SendDlgItemMessage(dp->hwnd, c->base_id, STM_SETICON, (WPARAM) hicon, 0);
+    HICON hicon;
+    struct dlgparam *dp = (struct dlgparam *) dlg;
+    struct winctrl *c = dlg_findbyctrl(dp, ctrl);
+    assert(c && c->ctrl->generic.type == CTRL_ICON);
+    hicon = extract_icon((char *) icon, FALSE);
+    SendDlgItemMessage(dp->hwnd, c->base_id, STM_SETICON, (WPARAM) hicon, 0);
 };
 //--------------------------------
 
@@ -2693,9 +2692,9 @@ void *dlg_alloc_privdata(union control *ctrl, void *dlg, size_t size)
  */ 
 int dlg_pick_icon(void *dlg, char **iname, int inamesize, int *iindex)
 {
-	struct dlgparam *dp = (struct dlgparam *) dlg;
-	int ret = SelectIcon(dp->hwnd, *iname, inamesize, iindex);
-	return ret == IDOK ? TRUE : FALSE;
+    struct dlgparam *dp = (struct dlgparam *) dlg;
+    int ret = SelectIcon(dp->hwnd, *iname, inamesize, iindex);
+    return ret == IDOK ? TRUE : FALSE;
 };
 
 // vim: ts=8 sts=4 sw=4 noet cino=\:2\=2(0u0
