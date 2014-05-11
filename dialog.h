@@ -35,7 +35,13 @@ enum {
     CTRL_COLUMNS,		       /* divide window into columns */
     CTRL_FILESELECT,		       /* label plus filename selector */
     CTRL_FONTSELECT,		       /* label plus font selector */
-    CTRL_TABDELAY		       /* see `tabdelay' below */
+    CTRL_TABDELAY,		       /* see `tabdelay' below */
+
+	/*
+	 * HACK: PuttyTray / Session Icon
+	 * Add ctrl_icon, ctrl_path, ctrl_sessionlistbox
+	 */ 
+    CTRL_ICON					/* static icon without label */
 };
 
 /*
@@ -162,7 +168,7 @@ union control {
 	 * 
 	 * The `data' parameter points to the writable data being
 	 * modified as a result of the configuration activity; for
-	 * example, the PuTTY `Conf' structure, although not
+	 * example, the PuTTY `Config' structure, although not
 	 * necessarily.
 	 * 
 	 * The `dlg' parameter is passed back to the platform-
@@ -404,6 +410,15 @@ union control {
 	STANDARD_PREFIX;
 	char shortcut;
     } fontselect;
+
+	/*
+	 * HACK: PuttyTray / Session Icon
+	 */ 
+    struct {
+		STANDARD_PREFIX;
+		intorptr handle;
+    } icon;
+	//--------------
 };
 
 #undef STANDARD_PREFIX
@@ -427,8 +442,6 @@ struct controlset {
     union control **ctrls;	       /* actual array */
 };
 
-typedef void (*ctrl_freefn_t)(void *);    /* used by ctrl_alloc_with_free */
-
 /*
  * This is the container structure which holds a complete set of
  * controls.
@@ -440,7 +453,6 @@ struct controlbox {
     int nfrees;
     int freesize;
     void **frees;		       /* array of aux data areas to free */
-    ctrl_freefn_t *freefuncs;          /* parallel array of free functions */
 };
 
 struct controlbox *ctrl_new_box(void);
@@ -467,14 +479,8 @@ void ctrl_free(union control *);
  * and so data allocated through this function is better not used
  * to hold modifiable per-instance things. It's mostly here for
  * allocating structures to be passed as control handler params.
- *
- * ctrl_alloc_with_free also allows you to provide a function to free
- * the structure, in case there are other dynamically allocated bits
- * and pieces dangling off it.
  */
 void *ctrl_alloc(struct controlbox *b, size_t size);
-void *ctrl_alloc_with_free(struct controlbox *b, size_t size,
-                           ctrl_freefn_t freefunc);
 
 /*
  * Individual routines to create `union control' structures in a controlset.
@@ -531,6 +537,16 @@ union control *ctrl_checkbox(struct controlset *, char *label, char shortcut,
 union control *ctrl_tabdelay(struct controlset *, union control *);
 
 /*
+ * HACK: PuttyTray / Session Icon
+ */ 
+union control *ctrl_icon(struct controlset *, intorptr helpctx, intorptr context);
+
+// Should be somewhere below, but this is easier
+void dlg_icon_set(union control *ctrl, void *dlg, char const *icon);
+int dlg_pick_icon(void *dlg, char **iname, int inamesize, int *iindex);
+//------------------------------------
+
+/*
  * Routines the platform-independent dialog code can call to read
  * and write the values of controls.
  */
@@ -539,7 +555,7 @@ int dlg_radiobutton_get(union control *ctrl, void *dlg);
 void dlg_checkbox_set(union control *ctrl, void *dlg, int checked);
 int dlg_checkbox_get(union control *ctrl, void *dlg);
 void dlg_editbox_set(union control *ctrl, void *dlg, char const *text);
-char *dlg_editbox_get(union control *ctrl, void *dlg);   /* result must be freed by caller */
+void dlg_editbox_get(union control *ctrl, void *dlg, char *buffer, int length);
 /* The `listbox' functions can also apply to combo boxes. */
 void dlg_listbox_clear(union control *ctrl, void *dlg);
 void dlg_listbox_del(union control *ctrl, void *dlg, int index);
@@ -559,10 +575,10 @@ int dlg_listbox_index(union control *ctrl, void *dlg);
 int dlg_listbox_issel(union control *ctrl, void *dlg, int index);
 void dlg_listbox_select(union control *ctrl, void *dlg, int index);
 void dlg_text_set(union control *ctrl, void *dlg, char const *text);
-void dlg_filesel_set(union control *ctrl, void *dlg, Filename *fn);
-Filename *dlg_filesel_get(union control *ctrl, void *dlg);
-void dlg_fontsel_set(union control *ctrl, void *dlg, FontSpec *fn);
-FontSpec *dlg_fontsel_get(union control *ctrl, void *dlg);
+void dlg_filesel_set(union control *ctrl, void *dlg, Filename fn);
+void dlg_filesel_get(union control *ctrl, void *dlg, Filename *fn);
+void dlg_fontsel_set(union control *ctrl, void *dlg, FontSpec fn);
+void dlg_fontsel_get(union control *ctrl, void *dlg, FontSpec *fn);
 /*
  * Bracketing a large set of updates in these two functions will
  * cause the front end (if possible) to delay updating the screen
@@ -661,3 +677,5 @@ int ctrl_path_elements(char *path);
 /* Return the number of matching path elements at the starts of p1 and p2,
  * or INT_MAX if the paths are identical. */
 int ctrl_path_compare(char *p1, char *p2);
+
+// vim: ts=8 sts=4 sw=4 noet cino=\:2\=2(0u0

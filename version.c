@@ -51,7 +51,7 @@ char sshver[] = "PuTTY-Custom-r" STR(SVN_REV);
 
 #else
 
-char ver[] = "Unidentified build, " __DATE__ " " __TIME__;
+char ver[] = "Development testing, " __DATE__ " " __TIME__;
 char sshver[] = "PuTTY-Local: " __DATE__ " " __TIME__;
 
 #endif

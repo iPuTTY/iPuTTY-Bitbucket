@@ -15,12 +15,23 @@
 #define HOST_BOX_TITLE "Host Name (or IP address)"
 #define PORT_BOX_TITLE "Port"
 
+/*
+ * HACK: PuttyTray / PuTTY File
+ * Define and struct moved up here so they can be used in storagetype_handler
+ */
+#define SAVEDSESSION_LEN 2048
+struct sessionsaver_data {
+    union control *editbox, *listbox, *loadbutton, *savebutton, *delbutton;
+    union control *okbutton, *cancelbutton;
+    struct sesslist sesslist;
+    int midsession;
+};
+
 void conf_radiobutton_handler(union control *ctrl, void *dlg,
 			      void *data, int event)
 {
     int button;
     Conf *conf = (Conf *)data;
-
     /*
      * For a standard radio button set, the context parameter gives
      * the primary key (CONF_foo), and the extra data per button
@@ -289,6 +300,51 @@ void config_protocolbuttons_handler(union control *ctrl, void *dlg,
     }
 }
 
+/*
+ * HACK: PuttyTray / PuTTY File
+ * Storagetype radio buttons event handler
+ */
+void storagetype_handler(union control *ctrl, void *dlg, void *data, int event)
+{
+    int button;
+    struct sessionsaver_data *ssd =(struct sessionsaver_data *)ctrl->generic.context.p;
+    Config *conf = (Config *)data;
+
+    /*
+     * For a standard radio button set, the context parameter gives
+     * offsetof(targetfield, Config), and the extra data per button
+     * gives the value the target field should take if that button
+     * is the one selected.
+     */
+    if (event == EVENT_REFRESH) {
+	button = conf->session_storagetype; // Button index = same as storagetype number. Set according to config
+	dlg_radiobutton_set(ctrl, dlg, button);
+    } else if (event == EVENT_VALCHANGE) {
+	button = dlg_radiobutton_get(ctrl, dlg);
+
+	// Switch between registry and file
+	if (ctrl->radio.buttondata[button].i == 0) {
+	    get_sesslist(&ssd->sesslist, FALSE, 0);
+	    get_sesslist(&ssd->sesslist, TRUE, 0);
+	    dlg_refresh(ssd->editbox, dlg);
+	    dlg_refresh(ssd->listbox, dlg);
+
+	    // Save setting into config (the whole *(int *)ATOFFSET(data, ctrl->radio.context.i) = ctrl->radio.buttondata[button].i; didn't work)
+	    // and I don't see why I shouldn't do it this way (it works?)
+	    conf->session_storagetype = 0;
+	} else {
+	    get_sesslist(&ssd->sesslist, FALSE, 1);
+	    get_sesslist(&ssd->sesslist, TRUE, 1);
+	    dlg_refresh(ssd->editbox, dlg);
+	    dlg_refresh(ssd->listbox, dlg);
+
+	    // Here as well
+	    conf->session_storagetype = 1;
+	}
+    }
+}
+/** HACK: END **/
+
 static void loggingbuttons_handler(union control *ctrl, void *dlg,
 				   void *data, int event)
 {
@@ -392,6 +448,7 @@ static void cipherlist_handler(union control *ctrl, void *dlg,
 			     dlg_listbox_getid(ctrl, dlg, i));
     }
 }
+
 
 #ifndef NO_GSSAPI
 static void gsslist_handler(union control *ctrl, void *dlg,
@@ -605,6 +662,23 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
     Conf *conf = (Conf *)data;
     struct sessionsaver_data *ssd =
 	(struct sessionsaver_data *)ctrl->generic.context.p;
+    char *savedsession;
+
+    /*
+     * The first time we're called in a new dialog, we must
+     * allocate space to store the current contents of the saved
+     * session edit box (since it must persist even when we switch
+     * panels, but is not part of the Config).
+     */
+    if (!ssd->editbox) {
+	savedsession = NULL;
+    } else if (!dlg_get_privdata(ssd->editbox, dlg)) {
+	savedsession = (char *)
+	    dlg_alloc_privdata(ssd->editbox, dlg, SAVEDSESSION_LEN);
+	savedsession[0] = '\0';
+    } else {
+	savedsession = dlg_get_privdata(ssd->editbox, dlg);
+    }
 
     if (event == EVENT_REFRESH) {
 	if (ctrl == ssd->editbox) {
@@ -618,7 +692,7 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 	    dlg_update_done(ctrl, dlg);
 	}
     } else if (event == EVENT_VALCHANGE) {
-        int top, bottom, halfway, i;
+	int top, bottom, halfway, i;
 	if (ctrl == ssd->editbox) {
             sfree(ssd->savedsession);
             ssd->savedsession = dlg_editbox_get(ctrl, dlg);
@@ -629,12 +703,12 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 	        i = strcmp(ssd->savedsession, ssd->sesslist.sessions[halfway]);
 	        if (i <= 0 ) {
 		    top = halfway;
-	        } else {
+		} else {
 		    bottom = halfway;
-	        }
+		}
 	    }
 	    if (top == ssd->sesslist.nsessions) {
-	        top -= 1;
+		top -= 1;
 	    }
 	    dlg_listbox_select(ssd->listbox, dlg, top);
 	}
@@ -674,8 +748,13 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
                     sfree(errmsg);
                 }
             }
-	    get_sesslist(&ssd->sesslist, FALSE);
-	    get_sesslist(&ssd->sesslist, TRUE);
+
+	    /*
+	     * HACK: PuttyTray / PuTTY File
+	     * Added storagetype to get_sesslist
+	     */
+	    get_sesslist(&ssd->sesslist, FALSE, conf->session_storagetype);
+	    get_sesslist(&ssd->sesslist, TRUE, conf->session_storagetype);
 	    dlg_refresh(ssd->editbox, dlg);
 	    dlg_refresh(ssd->listbox, dlg);
 	} else if (!ssd->midsession &&
@@ -685,16 +764,22 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 		dlg_beep(dlg);
 	    } else {
 		del_settings(ssd->sesslist.sessions[i]);
-		get_sesslist(&ssd->sesslist, FALSE);
-		get_sesslist(&ssd->sesslist, TRUE);
+
+		/*
+		 * HACK: PuttyTray / PuTTY File
+		 * Added storagetype to get_sesslist
+		 */
+		get_sesslist(&ssd->sesslist, FALSE, conf->session_storagetype);
+		get_sesslist(&ssd->sesslist, TRUE, conf->session_storagetype);
+
 		dlg_refresh(ssd->listbox, dlg);
 	    }
 	} else if (ctrl == ssd->okbutton) {
-            if (ssd->midsession) {
-                /* In a mid-session Change Settings, Apply is always OK. */
+	    if (ssd->midsession) {
+		/* In a mid-session Change Settings, Apply is always OK. */
 		dlg_end(dlg, 1);
-                return;
-            }
+		return;
+	    }
 	    /*
 	     * Annoying special case. If the `Open' button is
 	     * pressed while no host name is currently set, _and_
@@ -717,7 +802,6 @@ static void sessionsaver_handler(union control *ctrl, void *dlg,
 		    dlg_end(dlg, 1);
 		} else
 		    dlg_beep(dlg);
-
 		conf_free(conf2);
                 return;
 	    }
@@ -796,7 +880,7 @@ static const char *const colours[] = {
 };
 
 static void colour_handler(union control *ctrl, void *dlg,
-			    void *data, int event)
+			   void *data, int event)
 {
     Conf *conf = (Conf *)data;
     struct colour_data *cd =
@@ -1212,7 +1296,7 @@ static void portfwd_handler(union control *ctrl, void *dlg,
 }
 
 void setup_config_box(struct controlbox *b, int midsession,
-		      int protocol, int protcfginfo)
+		      int protocol, int protcfginfo, int session_storagetype) // HACK: PuttyTray / PuTTY File - Added 'int session_storagetype'
 {
     struct controlset *s;
     struct sessionsaver_data *ssd;
@@ -1223,6 +1307,7 @@ void setup_config_box(struct controlbox *b, int midsession,
     struct portfwd_data *pfd;
     union control *c;
     char *str;
+    int current_storagetype; // HACK: PuttyTray / PuTTY File - stores storagetype after sess_list may or may not have switched between file/registry because registry is empty
 
     ssd = (struct sessionsaver_data *)
 	ctrl_alloc_with_free(b, sizeof(struct sessionsaver_data),
@@ -1304,7 +1389,8 @@ void setup_config_box(struct controlbox *b, int midsession,
 		    midsession ? "Save the current session settings" :
 		    "Load, save or delete a stored session");
     ctrl_columns(s, 2, 75, 25);
-    get_sesslist(&ssd->sesslist, TRUE);
+
+    current_storagetype = get_sesslist(&ssd->sesslist, TRUE, (midsession ? session_storagetype : (session_storagetype + 2))); // HACK: PuttyTray / PuTTY File - The +2 triggers storagetype autoswitching
     ssd->editbox = ctrl_editbox(s, "Saved Sessions", 'e', 100,
 				HELPCTX(session_saved),
 				sessionsaver_handler, P(ssd), P(NULL));
@@ -1346,6 +1432,28 @@ void setup_config_box(struct controlbox *b, int midsession,
     }
     ctrl_columns(s, 1, 100);
 
+    /*
+     * HACK: PuttyTray / PuTTY File
+     * Add radio buttons
+     *
+     * Couldn't get the default selection to switch, so I switched the button position instead.
+     * Must be the lamest solution I ever came up with.
+     *
+     * In midsession, changing causes it to be reversed again (wrong). So don't.
+     */
+    if (midsession || current_storagetype == 0) {
+	c = ctrl_radiobuttons(s, NULL, 'w', 2,
+			      HELPCTX(no_help),
+			      storagetype_handler,
+			      P(ssd), "Sessions from registry", I(0), "Sessions from file", I(1), NULL);
+    } else {
+	c = ctrl_radiobuttons(s, NULL, 'w', 2,
+			      HELPCTX(no_help),
+			      storagetype_handler,
+			      P(ssd), "Sessions from file", I(1), "Sessions from registry", I(0), NULL);
+    }
+    /** HACK: END **/
+
     s = ctrl_getset(b, "Session", "otheropts", NULL);
     ctrl_radiobuttons(s, "Close window on exit:", 'x', 4,
                       HELPCTX(session_coe),
@@ -1371,10 +1479,10 @@ void setup_config_box(struct controlbox *b, int midsession,
 	    (!midsession && backend_from_proto(PROT_SSH))) {
 	    sshlogname = "SSH packets";
 	    sshrawlogname = "SSH packets and raw data";
-        } else {
+	} else {
 	    sshlogname = NULL;	       /* this will disable both buttons */
 	    sshrawlogname = NULL;      /* this will just placate optimisers */
-        }
+	}
 	ctrl_radiobuttons(s, "Session logging:", NO_SHORTCUT, 2,
 			  HELPCTX(logging_main),
 			  loggingbuttons_handler,
@@ -1400,8 +1508,8 @@ void setup_config_box(struct controlbox *b, int midsession,
 		      "Always append to the end of it", I(LGXF_APN),
 		      "Ask the user every time", I(LGXF_ASK), NULL);
     ctrl_checkbox(s, "Flush log file frequently", 'u',
-		 HELPCTX(logging_flush),
-		 conf_checkbox_handler, I(CONF_logflush));
+		  HELPCTX(logging_flush),
+		  conf_checkbox_handler, I(CONF_logflush));
 
     if ((midsession && protocol == PROT_SSH) ||
 	(!midsession && backend_from_proto(PROT_SSH))) {
@@ -1714,7 +1822,7 @@ void setup_config_box(struct controlbox *b, int midsession,
      * The Window/Selection panel.
      */
     ctrl_settitle(b, "Window/Selection", "Options controlling copy and paste");
-	
+
     s = ctrl_getset(b, "Window/Selection", "mouse",
 		    "Control use of mouse");
     ctrl_checkbox(s, "Shift overrides application's use of mouse", 'p',
@@ -1831,15 +1939,15 @@ void setup_config_box(struct controlbox *b, int midsession,
 			  I(CONF_tcp_keepalives));
 #ifndef NO_IPV6
 	    s = ctrl_getset(b, "Connection", "ipversion",
-			  "Internet protocol version");
+			    "Internet protocol version");
 	    ctrl_radiobuttons(s, NULL, NO_SHORTCUT, 3,
-			  HELPCTX(connection_ipversion),
-			  conf_radiobutton_handler,
-			  I(CONF_addressfamily),
-			  "Auto", 'u', I(ADDRTYPE_UNSPEC),
-			  "IPv4", '4', I(ADDRTYPE_IPV4),
-			  "IPv6", '6', I(ADDRTYPE_IPV6),
-			  NULL);
+			      HELPCTX(connection_ipversion),
+			      conf_radiobutton_handler,
+			      I(CONF_addressfamily),
+			      "Auto", 'u', I(ADDRTYPE_UNSPEC),
+			      "IPv4", '4', I(ADDRTYPE_IPV4),
+			      "IPv6", '6', I(ADDRTYPE_IPV6),
+			      NULL);
 #endif
 
 	    {
@@ -2452,3 +2560,5 @@ void setup_config_box(struct controlbox *b, int midsession,
 	}
     }
 }
+
+// vim: ts=8 sts=4 sw=4 noet cino=\:2\=2(0u0
