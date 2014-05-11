@@ -429,6 +429,10 @@ static const struct cp_list_item cp_list[] = {
     {"CP819", 28591},
     {"CP852", 852},
     {"CP878", 20866},
+	{"CP932", 932},
+	{"CP936", 936},
+	{"CP949", 949},
+	{"CP950", 950},
 
     {"Use font encoding", -1},
 
@@ -1070,8 +1074,8 @@ int decode_codepage(char *cp_name)
 	if (codepage != CP_UTF8 && codepage < 65536) {
 	    if (GetCPInfo(codepage, &cpinfo) == 0) {
 		codepage = -2;
-	    } else if (cpinfo.MaxCharSize > 1)
-		codepage = -3;
+	    } //else if (cpinfo.MaxCharSize > 1)
+		//codepage = -3;
 	}
     }
     if (codepage == -1 && *cp_name)
@@ -1206,6 +1210,17 @@ int mb_to_wc(int codepage, int flags, const char *mbstr, int mblen,
 	     wchar_t *wcstr, int wclen)
 {
     return MultiByteToWideChar(codepage, flags, mbstr, mblen, wcstr, wclen);
+}
+
+// Short-hand function of mb_to_wc, which allocates memory space automatically.
+// IMPORTANT: You must free the pointer returned by this function manually.
+wchar_t *short_mb_to_wc(int codepage, int flags, char *mbstr, int mblen)
+{
+    int wlen = MultiByteToWideChar(codepage, flags, mbstr, mblen, NULL, 0);
+    wchar_t *wstr = snewn(1 + wlen, wchar_t);
+    MultiByteToWideChar(codepage, flags, mbstr, mblen, wstr, wlen);
+    wstr[wlen] = '\0';
+    return wstr;
 }
 
 int is_dbcs_leadbyte(int codepage, char byte)
