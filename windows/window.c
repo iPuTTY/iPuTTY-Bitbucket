@@ -743,6 +743,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
      * Changes below: wndclassEX and some additions for the 2 icon sizes
      */ 
     if (!prev) {
+	char *win_icon;
 	wndclass.cbSize = sizeof(WNDCLASSEX);
 	wndclass.style = 0;
 	wndclass.lpfnWndProc = WndProc;
@@ -750,7 +751,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	wndclass.cbWndExtra = 0;
 	wndclass.hInstance = inst;
 
-	char *win_icon = conf_get_str(conf, CONF_win_icon);
+	win_icon = conf_get_str(conf, CONF_win_icon);
 	if (win_icon[0]) {
 	    wndclass.hIcon = extract_icon(win_icon, FALSE);
 	    wndclass.hIconSm = extract_icon(win_icon, TRUE);
@@ -1010,9 +1011,11 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
     /*
      * HACK: PuttyTray / Transparency
      */
-    int transp = conf_get_int(conf, CONF_transparency);
-    if (transp >= 50 && transp < 255) {
-	MakeWindowTransparent(hwnd, transp);
+    {
+	int transp = conf_get_int(conf, CONF_transparency);
+	if (transp >= 50 && transp < 255) {
+	    MakeWindowTransparent(hwnd, transp);
+	}
     }
 
     /*
@@ -1020,19 +1023,20 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
      * Finally show the window (or the trayicon)!
      */
     puttyTrayVisible = FALSE;
-
-    int tray = conf_get_int(conf, CONF_tray);
-    if (tray == TRAY_START || tray == TRAY_ALWAYS) {
-	taskbar_addicon(conf_get_int(conf, CONF_win_name_always) ? window_name : icon_name, TRUE);
-    }
-    if (tray == TRAY_START) {
-	ShowWindow(hwnd, SW_HIDE);
-	windowMinimized = TRUE;
-    } else {
-	ShowWindow(hwnd, show);
-	SetForegroundWindow(hwnd);
-	term_set_focus(term, GetForegroundWindow() == hwnd);
-	UpdateWindow(hwnd);
+    {
+	int tray = conf_get_int(conf, CONF_tray);
+	if (tray == TRAY_START || tray == TRAY_ALWAYS) {
+	    taskbar_addicon(conf_get_int(conf, CONF_win_name_always) ? window_name : icon_name, TRUE);
+	}
+	if (tray == TRAY_START) {
+	    ShowWindow(hwnd, SW_HIDE);
+	    windowMinimized = TRUE;
+	} else {
+	    ShowWindow(hwnd, show);
+	    SetForegroundWindow(hwnd);
+	    term_set_focus(term, GetForegroundWindow() == hwnd);
+	    UpdateWindow(hwnd);
+	}
     }
 
     hAccel = LoadAccelerators(inst, MAKEINTRESOURCE(IDR_ACCELERATOR1));
@@ -1301,7 +1305,7 @@ void connection_fatal(void *frontend, char *fmt, ...)
     /*
      * HACK: PuTTYTray / Reconnect on connection failure
      */
-    if (conf.get_int(conf, CONF_failure_reconnect)) {
+    if (conf_get_int(conf, CONF_failure_reconnect)) {
 	time_t tnow = time(NULL);
 	close_session();
 	if (last_reconnect && (tnow - last_reconnect) < 5) {
@@ -1321,7 +1325,7 @@ void connection_fatal(void *frontend, char *fmt, ...)
 
 	if (conf_get_int(conf, CONF_close_on_exit) == FORCE_ON)
 	    PostQuitMessage(1);
-	else {
+	else
 	    must_close_session = TRUE;
     }
 }
@@ -1667,7 +1671,7 @@ static void init_fonts(int pick_width, int pick_height)
     f(FONT_NORMAL, font->charset, fw_dontcare, FALSE, FALSE);
     f(FONT_ITALIC, font->charset, fw_dontcare, FALSE, TRUE);
     if (conf_get_int(conf, CONF_use_font_unicode)) {
-	FontSpec *font_unicode = conf_get_fontspec(font, CONF_unicode_font);
+	FontSpec *font_unicode = conf_get_fontspec(font, CONF_font_unicode);
 	fonts[FONT_UNICODE] = CreateFont (font_height, font_width, 0, 0, fw_dontcare, FALSE, FALSE, FALSE, \
 					  font_unicode->charset, OUT_DEFAULT_PRECIS, \
 					  CLIP_DEFAULT_PRECIS, FONT_QUALITY(quality), \
@@ -1768,7 +1772,7 @@ static void init_fonts(int pick_width, int pick_height)
 	}
     }
 
-    if (bold_mode == BOLD_FONT) {
+    if (bold_font_mode == BOLD_FONT) {
 	f(FONT_BOLD, font->charset, fw_bold, FALSE, FALSE);
 	f(FONT_BOLDITA, font->charset, fw_bold, FALSE, TRUE);
     }
@@ -2517,15 +2521,17 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 		 * HACK: PuttyTray / Transparency
 		 * Reconfigure
 		 */
-		int transp = conf_get_int(conf, CONF_transparency);
-		if (transp>= 50) {
-		    if (transp> 255) {
-			MakeWindowTransparent(hwnd, 255);
+		{
+		    int transp = conf_get_int(conf, CONF_transparency);
+		    if (transp>= 50) {
+			if (transp> 255) {
+			    MakeWindowTransparent(hwnd, 255);
+			} else {
+			    MakeWindowTransparent(hwnd, transp);
+			}
 		    } else {
-			MakeWindowTransparent(hwnd, transp);
+			MakeWindowTransparent(hwnd, 255);
 		    }
-		} else {
-		    MakeWindowTransparent(hwnd, 255);
 		}
 
 		/*
@@ -2542,41 +2548,48 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 		 * HACK: PuttyTray / Session Icon
 		 * Reconfigure
 		 */
-		char *win_icon = conf_get_str(conf, CONF_win_icon);
-		if (win_icon[0]) {
-		    hIcon = extract_icon(win_icon, TRUE);
-		    DestroyIcon(puttyTray.hIcon);
-		    puttyTray.hIcon = hIcon;
-		    SetClassLong(hwnd, GCL_HICON, extract_icon(win_icon, FALSE));
-		    SetClassLong(hwnd, GCL_HICONSM, (LONG)hIcon);
-		} else {
-		    inst = GetWindowLong(hwnd, -6);
-		    DestroyIcon(puttyTray.hIcon);
-		    puttyTray.hIcon	= LoadImage(inst, MAKEINTRESOURCE(IDI_TRAYICON), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR|LR_SHARED);
-		    SetClassLong(hwnd, GCL_HICON, (LONG)LoadImage(inst, MAKEINTRESOURCE(IDI_MAINICON), IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR|LR_SHARED));
-		    SetClassLong(hwnd, GCL_HICONSM, (LONG)LoadImage(inst, MAKEINTRESOURCE(IDI_MAINICON), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR|LR_SHARED));
+		{
+		    char *win_icon = conf_get_str(conf, CONF_win_icon);
+		    if (win_icon[0]) {
+			hIcon = extract_icon(win_icon, TRUE);
+			DestroyIcon(puttyTray.hIcon);
+			puttyTray.hIcon = hIcon;
+			SetClassLong(hwnd, GCL_HICON, extract_icon(win_icon, FALSE));
+			SetClassLong(hwnd, GCL_HICONSM, (LONG)hIcon);
+		    } else {
+			inst = GetWindowLong(hwnd, -6);
+			DestroyIcon(puttyTray.hIcon);
+			puttyTray.hIcon	= LoadImage(inst, MAKEINTRESOURCE(IDI_TRAYICON), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR|LR_SHARED);
+			SetClassLong(hwnd, GCL_HICON, (LONG)LoadImage(inst, MAKEINTRESOURCE(IDI_MAINICON), IMAGE_ICON, GetSystemMetrics(SM_CXICON), GetSystemMetrics(SM_CYICON), LR_DEFAULTCOLOR|LR_SHARED));
+			SetClassLong(hwnd, GCL_HICONSM, (LONG)LoadImage(inst, MAKEINTRESOURCE(IDI_MAINICON), IMAGE_ICON, GetSystemMetrics(SM_CXSMICON), GetSystemMetrics(SM_CYSMICON), LR_DEFAULTCOLOR|LR_SHARED));
+		    }
 		}
-		int win_name_always = conf_get_int(conf, CONF_win_name_always);
-		if (puttyTrayVisible) {
-		    taskbar_addicon( ? window_name : icon_name, TRUE);
+		{
+		    int win_name_always = conf_get_int(conf, CONF_win_name_always);
+		    if (puttyTrayVisible) {
+			taskbar_addicon(win_name_always ? window_name : icon_name, TRUE);
+		    }
 		}
 
 		/*
 		 * HACK: PuttyTray
 		 * Reconfigure
 		 */
-		int tray = conf_get_int(conf, CONF_tray);
-		if (tray == TRAY_NORMAL || tray == TRAY_START) {
-		    if (windowMinimized) {
-			ShowWindow(hwnd, SW_HIDE);
+		{
+		    int tray = conf_get_int(conf, CONF_tray);
+		    int win_name_always = conf_get_int(conf, CONF_win_name_always);
+		    if (tray == TRAY_NORMAL || tray == TRAY_START) {
+			if (windowMinimized) {
+			    ShowWindow(hwnd, SW_HIDE);
+			    taskbar_addicon(win_name_always ? window_name : icon_name, TRUE);
+			} else {
+			    taskbar_addicon(L"", FALSE);
+			}
+		    } else if (tray == TRAY_ALWAYS) {
 			taskbar_addicon(win_name_always ? window_name : icon_name, TRUE);
 		    } else {
 			taskbar_addicon(L"", FALSE);
 		    }
-		} else if (tray == TRAY_ALWAYS) {
-		    taskbar_addicon(win_name_always ? window_name : icon_name, TRUE);
-		} else {
-		    taskbar_addicon(L"", FALSE);
 		}
 
 		/* Screen size changed ? */
@@ -2662,7 +2675,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 		}
 
 		{ 
-		    char *wintitle = conf_get_str(conf, cONF_wintitle);
+		    char *wintitle = conf_get_str(conf, CONF_wintitle);
 		    wchar_t wintitleW[512] = {0};
 		    MultiByteToWideChar(decode_codepage(conf_get_str(conf, CONF_line_codepage)),
 				        0, wintitle, strlen(wintitle), wintitleW, 512);
@@ -2729,11 +2742,13 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    showabout(hwnd);
 	    break;
 	  case IDM_UNICODE:
-	    char *cur_line_codepage = conf_get_str(conf, CONF_line_codepage);
-	    conf_set_str(conf, CONF_line_code_page, strncmp(cur_line_codepage, "UTF-8", 6) ? "UTF-8" : "CP949");
-	    reset_window(2);
-	    cur_line_codepage = conf_get_str(conf, CONF_line_codepage);
-	    CheckMenuItem(GetSystemMenu(hwnd, FALSE), IDM_UNICODE, strcmp(cur_line_codepage, "UTF-8") ? MF_UNCHECKED : MF_CHECKED);
+	    {
+		char *cur_line_codepage = conf_get_str(conf, CONF_line_codepage);
+		conf_set_str(conf, CONF_line_codepage, strncmp(cur_line_codepage, "UTF-8", 6) ? "UTF-8" : "CP949");
+		reset_window(2);
+		cur_line_codepage = conf_get_str(conf, CONF_line_codepage);
+		CheckMenuItem(GetSystemMenu(hwnd, FALSE), IDM_UNICODE, strcmp(cur_line_codepage, "UTF-8") ? MF_UNCHECKED : MF_CHECKED);
+	    }
 	    break;
 	  case IDM_NEXTWINDOW:
 	    hNext = find_next_window();
@@ -3290,14 +3305,15 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 
 	    BYTE keys[256];
 	    int control_pressed;
+	    int win_name_always, tray;
 	    if (GetKeyboardState(keys)!=0) {
 		control_pressed=keys[VK_CONTROL]&0x80;
 	    }
 
-	    int conf_get_int(conf, CONF_win_name_always)
+	    win_name_always = conf_get_int(conf, CONF_win_name_always);
 	    SetWindowText(hwnd, win_name_always ? window_name : icon_name);
 
-	    int tray = conf_get_int(conf, CONF_tray);
+	    tray = conf_get_int(conf, CONF_tray);
 	    if (tray == TRAY_NORMAL || tray == TRAY_START || control_pressed > 0) {
 		taskbar_addicon(win_name_always ? window_name : icon_name, TRUE);
 		ShowWindow(hwnd, SW_HIDE);
@@ -4229,7 +4245,7 @@ void do_text_internal(Context ctx, int x, int y, wchar_t *text, int len,
 			ETO_CLIPPED | (opaque ? ETO_OPAQUE : 0),
 			&line_box, uni_buf, nlen,
 			lpDx_maybe);
-	    if (bold_mode == BOLD_SHADOW && (attr & ATTR_BOLD)) {
+	    if (bold_font_mode == BOLD_SHADOW && (attr & ATTR_BOLD)) {
 		SetBkMode(hdc, TRANSPARENT);
 		ExtTextOutW(hdc, x + xoffset - 1,
 			    y - font_height * (lattr ==
@@ -4254,7 +4270,7 @@ void do_text_internal(Context ctx, int x, int y, wchar_t *text, int len,
 		       y - font_height * (lattr == LATTR_BOT) + text_adjust,
 		       ETO_CLIPPED | (opaque ? ETO_OPAQUE : 0),
 		       &line_box, directbuf, len, lpDx_maybe);
-	    if (bold_mode == BOLD_SHADOW && (attr & ATTR_BOLD)) {
+	    if (bold_font_mode == BOLD_SHADOW && (attr & ATTR_BOLD)) {
 		SetBkMode(hdc, TRANSPARENT);
 
 		/* GRR: This draws the character outside its box and
@@ -4816,8 +4832,8 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
 	    }
 	    else if (1 == shift_state)
 	    {
-		conf_set_int(conf, CONF_transparency_mode, 1);
 		int transp = conf_get_int(conf, CONF_transparency);
+		conf_set_int(conf, CONF_transparency_mode, 1);
 		transp -= 5;
 		transp = max(50, transp);
 		MakeWindowTransparent(hwnd, transp);
@@ -4847,8 +4863,8 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
 		}
 	    } else if (1 == shift_state)
 	    {
-		conf_set_int(conf, CONF_transparency_mode, 1);
 		int transp = conf_get_int(conf, CONF_transparency);
+		conf_set_int(conf, CONF_transparency_mode, 1);
 		transp += 5;
 		transp = min(255, transp);
 		MakeWindowTransparent(hwnd, transp);
@@ -5431,11 +5447,12 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
 void set_title(void *frontend, wchar_t *title)
 {
     int len = wcslen(title);
+    int win_name_always;
     sfree(window_name);
     window_name = snewn(1 + len, wchar_t);
     wcscpy(window_name, title);
 
-    int win_name_always = conf_get_int(conf, CONF_win_name_always);
+    win_name_always = conf_get_int(conf, CONF_win_name_always);
     if (win_name_always || !IsIconic(hwnd))
 	SetWindowTextW(hwnd, title);
     /*
@@ -5447,11 +5464,12 @@ void set_title(void *frontend, wchar_t *title)
 
 void set_icon(void *frontend, wchar_t *title)
 {
+    int win_name_always;
     sfree(icon_name);
     icon_name = snewn(1 + wcslen(title), wchar_t);
     wcscpy(icon_name, title);
 
-    int win_name_always = conf_get_int(conf, CONF_win_name_always);
+    win_name_always = conf_get_int(conf, CONF_win_name_always);
     if (!win_name_always && IsIconic(hwnd))
 	SetWindowTextW(hwnd, title);
 }
@@ -6168,6 +6186,7 @@ static void flash_window(int mode)
 	    } else {
 		FlashWindow(hwnd, TRUE);
 		next_flash = schedule_timer(450, flash_window_timer, hwnd);
+	    }
 
 	    /*
 	     * HACK: PuttyTray

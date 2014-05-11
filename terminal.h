@@ -282,10 +282,12 @@ struct terminal_tag {
 
 #ifdef ONTHESPOT
     /*
+     * HACK: iPuTTY
      * These are stuff used by the on-the-spot IME support code.
      */
     int onthespot;
     wchar_t onthespot_buf[2];
+#endif
     /*
      * HACK: PuttyTray / Nutty
      */

@@ -1133,9 +1133,9 @@ void do_defaults(char *session, Conf *conf)
  * HACK: PuttyTray / PuTTY File
  * Quick hack to load defaults from file
  */
-void do_defaults_file(char *session, Config * cfg)
+void do_defaults_file(char *session, Conf *conf)
 {
-    load_settings_file(session, cfg);
+    load_settings_file(session, conf);
 }
 
 static int sessioncmp(const void *av, const void *bv)

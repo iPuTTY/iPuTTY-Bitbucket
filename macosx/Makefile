@@ -227,6 +227,8 @@ puttygen: cmdgen.o conf.o import.o misc.o notiming.o sshaes.o sshbn.o \
 		sshsh512.o sshsha.o time.o tree234.o uxcons.o uxgen.o \
 		uxmisc.o uxnoise.o uxstore.o version.o 
 
+PickIconDialog.o: ../windows/PickIconDialog.c
+	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
 be_all_s.o: ../be_all_s.c ../putty.h ../puttyps.h ../network.h ../misc.h \
 		../windows/winstuff.h ../macosx/osx.h ../unix/unix.h \
 		../puttymem.h ../tree234.h ../windows/winhelp.h \
@@ -413,6 +415,8 @@ raw.o: ../raw.c ../putty.h ../puttyps.h ../network.h ../misc.h \
 		../puttymem.h ../tree234.h ../windows/winhelp.h \
 		../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
+regexp.o: ../windows/regexp.cpp ../windows/regexp.h ../windows/regmagic.h
+	$(CC) -x c++ $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
 rlogin.o: ../rlogin.c ../putty.h ../puttyps.h ../network.h ../misc.h \
 		../windows/winstuff.h ../macosx/osx.h ../unix/unix.h \
 		../puttymem.h ../tree234.h ../windows/winhelp.h \
@@ -427,10 +431,11 @@ sercfg.o: ../sercfg.c ../putty.h ../dialog.h ../storage.h ../puttyps.h \
 		../unix/unix.h ../puttymem.h ../tree234.h \
 		../windows/winhelp.h ../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
-settings.o: ../settings.c ../putty.h ../storage.h ../puttyps.h ../network.h \
-		../misc.h ../windows/winstuff.h ../macosx/osx.h \
-		../unix/unix.h ../puttymem.h ../tree234.h \
-		../windows/winhelp.h ../charset/charset.h
+settings.o: ../settings.c ../putty.h ../storage.h ../windows/urlhack.h \
+		../puttyps.h ../network.h ../misc.h ../windows/regexp.h \
+		../windows/winstuff.h ../macosx/osx.h ../unix/unix.h \
+		../puttymem.h ../tree234.h ../windows/winhelp.h \
+		../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
 sftp.o: ../sftp.c ../misc.h ../int64.h ../tree234.h ../sftp.h ../puttymem.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
@@ -521,8 +526,9 @@ telnet.o: ../telnet.c ../putty.h ../puttyps.h ../network.h ../misc.h \
 		../puttymem.h ../tree234.h ../windows/winhelp.h \
 		../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
-terminal.o: ../terminal.c ../putty.h ../terminal.h ../puttyps.h ../network.h \
-		../misc.h ../tree234.h ../windows/winstuff.h ../macosx/osx.h \
+terminal.o: ../terminal.c ../putty.h ../terminal.h ../windows/urlhack.h \
+		../puttyps.h ../network.h ../misc.h ../tree234.h \
+		../windows/regexp.h ../windows/winstuff.h ../macosx/osx.h \
 		../unix/unix.h ../puttymem.h ../windows/winhelp.h \
 		../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
@@ -542,6 +548,12 @@ toucs.o: ../charset/toucs.c ../charset/charset.h ../charset/internal.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
 tree234.o: ../tree234.c ../tree234.h ../puttymem.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
+urlhack.o: ../windows/urlhack.cpp ../windows/urlhack.h ../putty.h \
+		../windows/regexp.h ../puttyps.h ../network.h ../misc.h \
+		../windows/winstuff.h ../macosx/osx.h ../unix/unix.h \
+		../puttymem.h ../tree234.h ../windows/winhelp.h \
+		../charset/charset.h
+	$(CC) -x c++ $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
 utf8.o: ../charset/utf8.c ../charset/charset.h ../charset/internal.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
 ux_x11.o: ../unix/ux_x11.c ../putty.h ../ssh.h ../network.h ../puttyps.h \
@@ -670,9 +682,10 @@ wincons.o: ../windows/wincons.c ../putty.h ../storage.h ../ssh.h \
 		../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
 winctrls.o: ../windows/winctrls.c ../putty.h ../misc.h ../dialog.h \
-		../puttyps.h ../network.h ../puttymem.h \
-		../windows/winstuff.h ../macosx/osx.h ../unix/unix.h \
-		../tree234.h ../windows/winhelp.h ../charset/charset.h
+		../windows/PickIconDialog.h ../puttyps.h ../network.h \
+		../puttymem.h ../windows/winstuff.h ../macosx/osx.h \
+		../unix/unix.h ../tree234.h ../windows/winhelp.h \
+		../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
 windefs.o: ../windows/windefs.c ../putty.h ../puttyps.h ../network.h \
 		../misc.h ../windows/winstuff.h ../macosx/osx.h \
@@ -685,11 +698,11 @@ windlg.o: ../windows/windlg.c ../putty.h ../ssh.h ../windows/win_res.h \
 		../macosx/osx.h ../unix/unix.h ../windows/winhelp.h \
 		../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
-window.o: ../windows/window.c ../putty.h ../terminal.h ../storage.h \
-		../windows/win_res.h ../puttyps.h ../network.h ../misc.h \
-		../tree234.h ../windows/winstuff.h ../macosx/osx.h \
-		../unix/unix.h ../puttymem.h ../windows/winhelp.h \
-		../charset/charset.h
+window.o: ../windows/window.c ../windows/urlhack.h ../putty.h ../terminal.h \
+		../storage.h ../windows/win_res.h ../windows/regexp.h \
+		../puttyps.h ../network.h ../misc.h ../tree234.h \
+		../windows/winstuff.h ../macosx/osx.h ../unix/unix.h \
+		../puttymem.h ../windows/winhelp.h ../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
 wingss.o: ../windows/wingss.c ../putty.h ../pgssapi.h ../sshgss.h \
 		../sshgssc.h ../misc.h ../puttyps.h ../network.h \
@@ -712,8 +725,8 @@ winjump.o: ../windows/winjump.c ../putty.h ../storage.h ../puttyps.h \
 		../unix/unix.h ../puttymem.h ../tree234.h \
 		../windows/winhelp.h ../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
-winmisc.o: ../windows/winmisc.c ../putty.h ../puttyps.h ../network.h \
-		../misc.h ../windows/winstuff.h ../macosx/osx.h \
+winmisc.o: ../windows/winmisc.c ../putty.h ../windows/win_res.h ../puttyps.h \
+		../network.h ../misc.h ../windows/winstuff.h ../macosx/osx.h \
 		../unix/unix.h ../puttymem.h ../tree234.h \
 		../windows/winhelp.h ../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
@@ -728,7 +741,8 @@ winnoise.o: ../windows/winnoise.c ../putty.h ../ssh.h ../storage.h \
 		../macosx/osx.h ../unix/unix.h ../windows/winhelp.h \
 		../charset/charset.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
-winnojmp.o: ../windows/winnojmp.c
+winnojmp.o: ../windows/winnojmp.c ../windows/winstuff.h ../tree234.h \
+		../windows/winhelp.h
 	$(CC) $(COMPAT) $(FWHACK) $(CFLAGS) $(XFLAGS) -c $<
 winpgen.o: ../windows/winpgen.c ../putty.h ../ssh.h ../puttyps.h \
 		../network.h ../misc.h ../puttymem.h ../tree234.h ../int64.h \

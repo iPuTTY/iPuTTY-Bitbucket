@@ -1259,7 +1259,7 @@ static void power_on(Terminal *term, int clear)
     term_schedule_cblink(term);
 #ifdef ONTHESPOT
     {
-	int cp = decode_codepage(term->cfg.line_codepage);
+	int cp = decode_codepage(conf_get_str(term->conf, CONF_line_codepage));
 	if (cp == CP_UTF8 || cp == 949)
 	    term->onthespot = 1;
 	else
@@ -2579,7 +2579,7 @@ static void do_osc(Terminal *term)
     } else {
 	wchar_t *osc_wstring;
 	term->osc_string[term->osc_strlen] = '\0';
-        osc_wstring = short_mb_to_wc(decode_codepage(term->cfg.line_codepage), 0, term->osc_string, term->osc_strlen);
+        osc_wstring = short_mb_to_wc(decode_codepage(conf_get_str(term->conf, CONF_line_codepage)), 0, term->osc_string, term->osc_strlen);
 	switch (term->esc_args[0]) {
 	  case 0:
 	  case 1:
@@ -3959,7 +3959,7 @@ static void term_out(Terminal *term)
 					wchar_t *wp = get_window_title(term->frontend, TRUE);
 					p = snewn(101, char);
 					memset(p, 0, sizeof(char) * 101);
-					wc_to_mb(decode_codepage(term->cfg.line_codepage), 0, wp, wcslen(wp), p, 100, NULL, NULL, NULL);
+					wc_to_mb(decode_codepage(conf_get_str(term->conf, CONF_line_codepage)), 0, wp, wcslen(wp), p, 100, NULL, NULL, NULL);
 				    } else
 					p = EMPTY_WINDOW_TITLE;
 				    len = strlen(p);
@@ -3977,7 +3977,7 @@ static void term_out(Terminal *term)
 					wchar_t *wp = get_window_title(term->frontend, FALSE);
 					p = snewn(101, char);
 					memset(p, 0, sizeof(char) * 101);
-					wc_to_mb(decode_codepage(term->cfg.line_codepage), 0, wp, wcslen(wp), p, 100, NULL, NULL, NULL);
+					wc_to_mb(decode_codepage(conf_get_str(term->conf, CONF_line_codepage)), 0, wp, wcslen(wp), p, 100, NULL, NULL, NULL);
 				    } else
 					p = EMPTY_WINDOW_TITLE;
 				    len = strlen(p);
@@ -4828,11 +4828,12 @@ static void do_paint(Terminal *term, Context ctx, int may_optimise)
      * TODO: We should find out somehow that the stuff on screen has changed since last
      *       paint. How to do it?
      */
-    int urlhack_underline_always = (term->cfg.url_underline == URLHACK_UNDERLINE_ALWAYS);
+    int conf_url_underline = conf_get_int(term->conf, CONF_url_underline);
+    int urlhack_underline_always = (conf_url_underline == URLHACK_UNDERLINE_ALWAYS);
 
     int urlhack_underline =
-	term->cfg.url_underline == URLHACK_UNDERLINE_ALWAYS ||
-	(term->cfg.url_underline == URLHACK_UNDERLINE_HOVER && (!term->cfg.url_ctrl_click || urlhack_is_ctrl_pressed())) ? 1 : 0;
+	conf_url_underline == URLHACK_UNDERLINE_ALWAYS ||
+	(conf_url_underline == URLHACK_UNDERLINE_HOVER && (!conf_get_int(term->conf, CONF_url_ctrl_click) || urlhack_is_ctrl_pressed())) ? 1 : 0;
 
     int urlhack_is_link = 0, urlhack_hover_current = 0;
     int urlhack_toggle_x = term->cols, urlhack_toggle_y = term->rows;
@@ -6088,10 +6089,12 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 	 * region, if so -> copy url to temporary buffer and launch it. Delete
 	 * the temporary buffer.
 	 */
+	int url_ctrl_click;
 	deselect(term);
 	term->selstate = NO_SELECTION;
 
-	if ((!term->cfg.url_ctrl_click || (term->cfg.url_ctrl_click && urlhack_is_ctrl_pressed())) && urlhack_is_in_link_region(x, y)) {
+	url_ctrl_click = conf_get_int(term->conf, CONF_url_ctrl_click);
+	if ((!url_ctrl_click || (url_ctrl_click && urlhack_is_ctrl_pressed())) && urlhack_is_in_link_region(x, y)) {
 	    int i;
 	    wchar_t *linkbuf = NULL;
 	    wchar_t *browser;
@@ -6129,8 +6132,10 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 		linkbuf[linklen - 1] = '\0';
 		unlineptr(urldata);
 	    }
-	    if (!term->cfg.url_defbrowser) {
-		browser = short_mb_to_wc(decode_codepage(term->cfg.line_codepage), 0, term->cfg.url_browser, strlen(term->cfg.url_browser));
+	    if (!conf_get_int(term->conf, CONF_url_defbrowser)) {
+		char *url_browser;
+		url_browser = conf_get_str(term->conf, CONF_url_browser);
+		browser = short_mb_to_wc(decode_codepage(conf_get_str(term->conf, CONF_line_codepage)), 0, url_browser, strlen(url_browser));
 	    } else
 		browser = NULL;
 

@@ -37,10 +37,10 @@ enum {
     CTRL_FONTSELECT,		       /* label plus font selector */
     CTRL_TABDELAY,		       /* see `tabdelay' below */
 
-	/*
-	 * HACK: PuttyTray / Session Icon
-	 * Add ctrl_icon, ctrl_path, ctrl_sessionlistbox
-	 */ 
+    /*
+     * HACK: PuttyTray / Session Icon
+     * Add ctrl_icon, ctrl_path, ctrl_sessionlistbox
+     */ 
     CTRL_ICON					/* static icon without label */
 };
 
@@ -411,14 +411,14 @@ union control {
 	char shortcut;
     } fontselect;
 
-	/*
-	 * HACK: PuttyTray / Session Icon
-	 */ 
+    /*
+     * HACK: PuttyTray / Session Icon
+     */ 
     struct {
-		STANDARD_PREFIX;
-		intorptr handle;
+	STANDARD_PREFIX;
+	intorptr handle;
     } icon;
-	//--------------
+    //--------------
 };
 
 #undef STANDARD_PREFIX
@@ -442,6 +442,8 @@ struct controlset {
     union control **ctrls;	       /* actual array */
 };
 
+typedef void (*ctrl_freefn_t)(void *);    /* used by ctrl_alloc_with_free */
+
 /*
  * This is the container structure which holds a complete set of
  * controls.
@@ -453,6 +455,7 @@ struct controlbox {
     int nfrees;
     int freesize;
     void **frees;		       /* array of aux data areas to free */
+    ctrl_freefn_t *freefuncs;          /* parallel array of free functions */
 };
 
 struct controlbox *ctrl_new_box(void);
@@ -481,6 +484,8 @@ void ctrl_free(union control *);
  * allocating structures to be passed as control handler params.
  */
 void *ctrl_alloc(struct controlbox *b, size_t size);
+void *ctrl_alloc_with_free(struct controlbox *b, size_t size,
+                           ctrl_freefn_t freefunc);
 
 /*
  * Individual routines to create `union control' structures in a controlset.
@@ -555,7 +560,7 @@ int dlg_radiobutton_get(union control *ctrl, void *dlg);
 void dlg_checkbox_set(union control *ctrl, void *dlg, int checked);
 int dlg_checkbox_get(union control *ctrl, void *dlg);
 void dlg_editbox_set(union control *ctrl, void *dlg, char const *text);
-void dlg_editbox_get(union control *ctrl, void *dlg, char *buffer, int length);
+char *dlg_editbox_get(union control *ctrl, void *dlg);   /* result must be freed by caller */
 /* The `listbox' functions can also apply to combo boxes. */
 void dlg_listbox_clear(union control *ctrl, void *dlg);
 void dlg_listbox_del(union control *ctrl, void *dlg, int index);
@@ -575,10 +580,10 @@ int dlg_listbox_index(union control *ctrl, void *dlg);
 int dlg_listbox_issel(union control *ctrl, void *dlg, int index);
 void dlg_listbox_select(union control *ctrl, void *dlg, int index);
 void dlg_text_set(union control *ctrl, void *dlg, char const *text);
-void dlg_filesel_set(union control *ctrl, void *dlg, Filename fn);
-void dlg_filesel_get(union control *ctrl, void *dlg, Filename *fn);
-void dlg_fontsel_set(union control *ctrl, void *dlg, FontSpec fn);
-void dlg_fontsel_get(union control *ctrl, void *dlg, FontSpec *fn);
+void dlg_filesel_set(union control *ctrl, void *dlg, Filename *fn);
+Filename *dlg_filesel_get(union control *ctrl, void *dlg);
+void dlg_fontsel_set(union control *ctrl, void *dlg, FontSpec *fn);
+FontSpec *dlg_fontsel_get(union control *ctrl, void *dlg);
 /*
  * Bracketing a large set of updates in these two functions will
  * cause the front end (if possible) to delay updating the screen
