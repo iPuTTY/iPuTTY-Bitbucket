@@ -20,8 +20,25 @@ extern int urlhack_mouse_old_x = -1, urlhack_mouse_old_y = -1, urlhack_current_r
 static std::vector<text_region> link_regions;
 static std::wstring browser_app;
 
-extern const char* urlhack_default_regex = "(((https?|ftp):\\/\\/)|www\\.)(([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)|localhost|([a-zA-Z0-9\\-]+\\.)*[a-zA-Z0-9\\-]+\\.(com|net|org|info|biz|gov|name|edu|[a-zA-Z][a-zA-Z]))(:[0-9]+)?((\\/|\\?)[^ \"]*[^ ,;\\.:\">)])?";
-
+extern const char* urlhack_default_regex =
+    "("
+	"(((https?|ftp):\\/\\/)|www\\.)"
+	"("
+	    "([0-9]+\\.[0-9]+\\.[0-9]+\\.[0-9]+)" // 127.0.0.1
+	    "|("
+		"([a-zA-Z0-9\\-]+\\.)*[a-zA-Z0-9\\-]+\\." // ab-c.de-f.qrs.tuv.
+		// popular tlds, and anything that could be a country
+		"(aero|asia|biz|cat|com|coop|kim|info|int|jobs"
+		    "|mobi|museum|name|net|org|post|pro|tel"
+		    "|travel|xxx|edu|gov|mil|[a-zA-Z][a-zA-Z])"
+	    ")"
+	    "|([a-z]+[0-9]*)" // http://foo
+	")"
+	"(:[0-9]+)?" // :8080
+	"((\\/|\\?)[^ \"]*[^ ,;\\.:\">)])?"
+    ")"
+    "|(spotify:[^ ]+:[^ ]+)"
+    ;
 
 void urlhack_clear_link_regions()
 {
