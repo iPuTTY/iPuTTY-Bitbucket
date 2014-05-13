@@ -4866,6 +4866,7 @@ static int TranslateKey(UINT message, WPARAM wParam, LPARAM lParam,
 		    MakeWindowTransparent(hwnd, 255);
 		    break;
 		}
+		conf_set_int(conf, CONF_transparency_mode, transp_mode);
 	    } else if (1 == shift_state)
 	    {
 		int transp = conf_get_int(conf, CONF_transparency);
