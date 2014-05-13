@@ -36,8 +36,8 @@ DECL_WINDOWS_FUNCTION(static, HRESULT, SHGetFolderPathA,
 struct enumsettings {
     HKEY key;
     int i;
-	int fromFile;
-	HANDLE hFile;
+    int fromFile;
+    HANDLE hFile;
 };
 
 // Random seed functions enumeration
@@ -1042,8 +1042,6 @@ char *file_read_setting_s(void *handle, const char *key)
     DWORD type;
     struct setItem *st;
     char *p;
-    char *ret;
-    DWORD size = 1024; /* Joongi: temporary fix for new conf API since 0.63 */
 
     if (!handle) return NULL;	/* JK: new in 0.1.3 */
 
@@ -1055,23 +1053,21 @@ char *file_read_setting_s(void *handle, const char *key)
 	st = ((struct setPack*) handle)->handle;
 	while (st->key) {
 	    if ( strcmp(st->key, p) == 0) {
-		unmungestr(st->value, ret, size);
-		return st->value;				
+		const size_t buflen = 1024*16;
+		char *buffer = snewn(buflen, char);
+		char *ret;
+		unmungestr(st->value, buffer, buflen);
+		ret = snewn(strlen(buffer) + 1, char);
+		strcpy(ret, buffer);
+		sfree(buffer);
+		return ret;
 	    }
 	    st = st->next;
 	}
     }
     else {
-	handle = ((struct setPack*) handle)->handle;
-
-	if (!handle || RegQueryValueEx((HKEY) handle, key, 0, &type, ret, &size) != ERROR_SUCCESS || type != REG_SZ) {
-	    return NULL;
-	}
-	else {
-	    return ret;
-	}
+	return reg_read_setting_s(((struct setPack*) handle)->handle, key);
     }
-    /* JK: should not end here -> value not found in file */
     return NULL;
 }
 
