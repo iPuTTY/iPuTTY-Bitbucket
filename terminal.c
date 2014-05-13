@@ -4302,7 +4302,12 @@ static void term_out(Terminal *term)
 		 */
 		if (c == '\012' || c == '\015') {
 		    term->termstate = TOPLEVEL;
-		} else if (c == 0234 || c == '\007') {
+		} else if (/* c == 0234 ||*/ c == '\007') {
+		    /* HACK: iPuTTY
+		     * 0234 (0x9c) may interfere with UTF-8 encoded Korean
+		     * characters. We drop support for 0x9c (ST) control
+		     * character in favor of Korean support and since
+		     * most xterm docs use 0x07. */
 		    /*
 		     * These characters terminate the string; ST and BEL
 		     * terminate the sequence and trigger instant
