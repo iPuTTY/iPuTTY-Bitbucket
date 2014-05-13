@@ -380,14 +380,15 @@ static void start_backend(void)
 static void close_session(void)
 {
     char morestuff[100];
-    wchar_t morestuffW[200] = {0};
+    wchar_t *morestuffW;
     int i;
 
     session_closed = TRUE;
     sprintf(morestuff, "%.70s (inactive)", appname);
-    MultiByteToWideChar(CP_ACP, 0, morestuff, strlen(morestuff), morestuffW, 200);
+    morestuffW = short_mb_to_wc(CP_ACP, 0, morestuff, strlen(morestuff));
     set_icon(NULL, morestuffW);
     set_title(NULL, morestuffW);
+    sfree(morestuffW);
 
     if (ldisc) {
 	ldisc_free(ldisc);
@@ -978,7 +979,7 @@ int WINAPI WinMain(HINSTANCE inst, HINSTANCE prev, LPSTR cmdline, int show)
 	memset(&mi, 0, sizeof(MENUINFO));
 	mi.cbSize = sizeof(MENUINFO);
 	mi.fMask = MIM_STYLE;
-	mi.dwStyle = MNS_NOCHECK | MNS_AUTODISMISS;
+	mi.dwStyle = MNS_AUTODISMISS;
 	SetMenuInfo(popup_menus[CTXMENU].menu, &mi);
     }
 
@@ -2464,7 +2465,12 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 		 * the window title field in the config box doesn't
 		 * reset the title to its startup state.
 		 */
-		conf_set_str(conf, CONF_wintitle, window_name);
+		{
+		    char *window_name_A;
+		    window_name_A = short_wc_to_mb(CP_ACP, 0, window_name, wcslen(window_name), NULL, NULL);
+		    conf_set_str(conf, CONF_wintitle, window_name_A);
+		    sfree(window_name_A);
+		}
 
 		prev_conf = conf_copy(conf);
 
@@ -2676,15 +2682,14 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 
 		{ 
 		    char *wintitle = conf_get_str(conf, CONF_wintitle);
-		    wchar_t wintitleW[512] = {0};
-		    MultiByteToWideChar(decode_codepage(conf_get_str(conf, CONF_line_codepage)),
-				        0, wintitle, strlen(wintitle), wintitleW, 512);
+		    wchar_t *wintitleW = short_mb_to_wc(CP_ACP, 0, wintitle, strlen(wintitle));
 		    set_title(NULL, wintitleW);
 		    if (IsIconic(hwnd)) {
-			SetWindowText(hwnd,
-				      conf_get_int(conf, CONF_win_name_always) ?
-				      window_name : icon_name);
+			SetWindowTextW(hwnd,
+				       conf_get_int(conf, CONF_win_name_always) ?
+				       window_name : icon_name);
 		    }
+		    sfree(wintitleW);
 		}
 
 		{
@@ -3311,7 +3316,7 @@ static LRESULT CALLBACK WndProc(HWND hwnd, UINT message,
 	    }
 
 	    win_name_always = conf_get_int(conf, CONF_win_name_always);
-	    SetWindowText(hwnd, win_name_always ? window_name : icon_name);
+	    SetWindowTextW(hwnd, win_name_always ? window_name : icon_name);
 
 	    tray = conf_get_int(conf, CONF_tray);
 	    if (tray == TRAY_NORMAL || tray == TRAY_START || control_pressed > 0) {
