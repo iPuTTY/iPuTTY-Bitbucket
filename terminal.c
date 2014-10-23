@@ -6038,8 +6038,8 @@ void term_mouse(Terminal *term, Mouse_Button braw, Mouse_Button bcooked,
 		term->mouse_is_down = 0;
 		break;
 	      case MA_CLICK:
-		if (term->mouse_is_down == braw) {// HACK: ADDED FOR hyperlink stuff
-		    unlineptr(ldata); 
+		if (term->mouse_is_down == braw && braw != MBT_WHEEL_UP && braw != MBT_WHEEL_DOWN) {// HACK: ADDED FOR hyperlink stuff
+		    unlineptr(ldata);
 		    return;
 		}
 		term->mouse_is_down = braw;
