@@ -1,7 +1,7 @@
 iPuTTY Bitbucket.org Repository
 ==
 
-이 repository는 2012년 부터 2016년까지 bitbucket.org의 project로 유지되었던 mercurial repository 보존용 입니다.
+이 repository는 2012년 부터 2016년까지 bitbucket.org의 project로 유지되었던 mercurial repository 보존용 입니다. 최신 버전은 https://github.com/iPuTTY/iPuTTY 를 이용하십시오.
 
 
 ## Welcome
